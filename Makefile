@@ -2,6 +2,13 @@
 
 OBJDIR = build
 
+.SILENT:
+
+2016/%: 2016/%.py
+	echo "#!/bin/env python" > $@
+	cat $< >> $@
+	chmod +x $@
+
 2017/%: 2017/%.hs
 	ghc -outputdir $(OBJDIR) -o $@ $<
 

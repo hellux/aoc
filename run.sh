@@ -20,6 +20,5 @@ if [ -z "$input" ]; then
     input="$(cat "$input_file")"
 fi
 
-make $executable
-printf "$input" | "./$executable"
-rm $executable
+make $executable && printf "$input" | "./$executable"
+rm -f $executable

@@ -10,7 +10,7 @@ OBJDIR = build
 	chmod +x $@
 
 2017/%: 2017/%.hs
-	ghc -outputdir $(OBJDIR) -o $@ $<
+	ghc -O -outputdir $(OBJDIR) -o $@ $<
 
 2018/%: 2018/%.go
 	go build -o $@ $<

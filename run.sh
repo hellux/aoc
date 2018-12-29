@@ -1,4 +1,6 @@
-# usage: ./run.sh year day or ./run.sh -i "INPUT" year day
+# usage: ./run.sh year day
+#        ./run.sh -i "INPUT" year day
+#        ./run.sh -I INPUT_FILE year day
 
 input=""
 input_file=""

@@ -1,19 +1,19 @@
-# usage: Make solution_YYYY-DD
+.POSIX:
+.SILENT:
+.SUFFIXES: .py .go .hs
 
 OBJDIR = build
 
-.SILENT:
-
-2016/%: 2016/%.py
+.py:
 	echo "#!/bin/env python" > $@
 	cat $< >> $@
-	chmod +x $@
+	chmod a+x $@
 
-2017/%: 2017/%.hs
-	ghc -O -outputdir $(OBJDIR) -o $@ $<
+.hs:
+	ghc -O -outputdir ${OBJDIR} -o $@ $<
 
-2018/%: 2018/%.go
+.go:
 	go build -o $@ $<
 
 clean:
-	rm -rf $(OBJDIR)
+	rm -rf ${OBJDIR} `find . -name solution`

@@ -23,4 +23,3 @@ if [ -z "$input" ]; then
 fi
 
 make $executable && printf "$input" | "./$executable"
-rm -f $executable

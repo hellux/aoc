@@ -1,5 +1,4 @@
 .POSIX:
-.SILENT:
 .SUFFIXES: .py .go .hs
 
 OBJDIR = build

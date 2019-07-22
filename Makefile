@@ -1,5 +1,5 @@
 .POSIX:
-.SUFFIXES: .lisp .py .go .hs
+.SUFFIXES: .lisp .py .go .hs .rs
 
 OBJDIR = build
 
@@ -17,6 +17,9 @@ OBJDIR = build
 
 .go:
 	go build -o $@ $<
+
+.rs:
+	rustc --edition 2018 -o $@ $<
 
 clean:
 	rm -rf ${OBJDIR} `find . -name solution`

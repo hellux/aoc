@@ -23,3 +23,5 @@ OBJDIR = build
 
 clean:
 	rm -rf ${OBJDIR} `find . -name solution`
+	rm -rf ${OBJDIR} `find . -name '*input*'`
+	rm -rf ${OBJDIR} `find . -name ex`

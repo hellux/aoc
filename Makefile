@@ -1,11 +1,16 @@
 .POSIX:
-.SUFFIXES: .lisp .py .go .hs .rs
+.SUFFIXES: .lisp .py .go .hs .rs .awk
 
 OBJDIR = build
 
 .lisp:
 	sbcl --load $< \
 		 --eval "(sb-ext:save-lisp-and-die #p\"$@\" :toplevel #'main :executable t)"
+
+.awk:
+	echo "#!/usr/bin/env -S awk -f" > $@
+	cat $< >> $@
+	chmod a+x $@
 
 .py:
 	echo "#!/bin/env python" > $@

@@ -38,4 +38,6 @@ if [ "$all" = "true" ]; then
     fi
 fi
 
-curl -b "$JAR" "https://adventofcode.com/$year/day/$day1" > "puzzle.html"
+mkdir -p puzzles
+puzzle_path="puzzles/puzzle_$year-$day2.html"
+curl -b "$JAR" "https://adventofcode.com/$year/day/$day1" > "$puzzle_path"

@@ -2,6 +2,7 @@
 .SUFFIXES: .lisp .py .go .hs .rs .awk
 
 OBJDIR = build
+CFLAGS += -Wall
 
 .lisp:
 	sbcl --load $< \
@@ -27,6 +28,12 @@ OBJDIR = build
 	rustc --edition 2018 -o $@ $<
 
 clean:
-	rm -rf ${OBJDIR} `find . -name solution`
-	rm -rf ${OBJDIR} `find . -name '*input*'`
-	rm -rf ${OBJDIR} `find . -name ex`
+	echo `pwd`
+	rm -rf ${OBJDIR}
+	rm -f `find . -name solution`
+	rm -f `find . -type f -a -name 'input*'`
+	rm -f `find . -type f -name 'ex*'`
+
+distclean: clean
+	rm -f cookies.jar
+	rm -rf puzzles

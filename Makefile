@@ -2,7 +2,7 @@
 .SUFFIXES: .lisp .py .go .hs .rs .awk
 
 OBJDIR = build
-CFLAGS += -Wall
+CFLAGS += -g -Wall -Wextra
 
 .lisp:
 	sbcl --load $< \
@@ -28,10 +28,9 @@ CFLAGS += -Wall
 	rustc --edition 2018 -o $@ $<
 
 clean:
-	echo `pwd`
 	rm -rf ${OBJDIR}
 	rm -f `find . -name solution`
-	rm -f `find . -type f -a -name 'input*'`
+	rm -f `find . -type f -a -name 'input'`
 	rm -f `find . -type f -name 'ex*'`
 
 distclean: clean

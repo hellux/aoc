@@ -2,7 +2,7 @@
 .SUFFIXES: .lisp .py .go .hs .rs .awk
 
 OBJDIR = build
-CFLAGS += -g -Wall -Wextra
+CFLAGS += -g -Wall -Wextra -Wconversion
 
 .lisp:
 	sbcl --load $< \

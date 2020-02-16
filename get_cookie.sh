@@ -25,7 +25,7 @@ code=$(curl -H "$AGENT" --data "$LOGIN_PARAMS" \
             -o /dev/null -w '%{http_code}' \
             "https://www.reddit.com/login" \
        || exit 1)
-[ "$code" -eq 400 ] && echo "invalid password" && exit 
+[ "$code" -eq 400 ] && echo "invalid password" && exit
 
 # Get uh token from reddit.
 uh=$(curl -H "$AGENT" \

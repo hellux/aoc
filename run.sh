@@ -19,6 +19,7 @@ executable="$day_dir/solution"
 
 if [ -z "$input" ]; then
     [ -z "$input_file" ] && input_file="$day_dir/input"
+    [ ! -r $input_file ] && echo "can't read input file" && exit 1
     input="$(cat "$input_file")"
 fi
 

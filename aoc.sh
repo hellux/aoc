@@ -209,7 +209,7 @@ run_cmd() {
     day_dir="$(echo $(printf "$DAY_FSTR" $year $day)*)"
     executable="$day_dir/$exec_name"
 
-    [ -f "$executable" ] || die "no solution at %s" "$executable"
+    [ -d "$day_dir" ] || die "no solution directory at %s" "$day_dir"
 
     if [ -z "$input" ]; then
         if [ -z "$input_file" ]; then

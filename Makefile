@@ -29,10 +29,3 @@ CFLAGS += -g -Wall -Wextra -Wconversion
 
 clean:
 	rm -rf ${OBJDIR}
-	rm -f `find . -name solution`
-	rm -f `find . -type f -a -name 'input'`
-	rm -f `find . -type f -name 'ex*'`
-
-distclean: clean
-	rm -f cookies.jar
-	rm -rf puzzles

@@ -17,7 +17,6 @@ YEAR_URL="$BASE_URL/%d"
 EXEC_NAME=solution
 AGENT="user-agent: Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101 Firefox/68.0"
 
-START_YEAR=2015
 OBJ_FSTR='%s/%s_%d-%02d'
 DAY_FSTR='%d/day%02d_'
 
@@ -63,8 +62,22 @@ assert_year() {
     year="$2"
     usage="$1"
     [ -z "$year" ] && die 'year not provided\n\n%s' "$usage"
-    [ "$year" -ge "$START_YEAR" ] 2> /dev/null \
+    [ "$year" -ge 2015 ] 2> /dev/null \
         || die 'invalid year -- %s\n%s' $year "$usage"
+}
+
+request() {
+    url="$1"
+    shift 1
+    args="$*"
+
+    code=$(curl -s -b "$JAR" -o /tmp/aoc_request -w '%{http_code}' $args "$url")
+
+    if [ "$code" != "200" ]; then
+        die "HTTP request to '%s' failed. -- code %s" "$url" "$code"
+    fi
+
+    cat /tmp/aoc_request
 }
 
 status_cmd() {
@@ -74,7 +87,7 @@ status_cmd() {
     if [ ! -f "$JAR" ]; then
         echo "Logged out"
     else
-        curl -s -b "$JAR" "$EVENTS_URL" > /tmp/aoc_events
+        request "$EVENTS_URL" > /tmp/aoc_events
         if grep "Log In" /tmp/aoc_events; then
             echo "Logic session expired."
         else
@@ -92,9 +105,8 @@ status_cmd() {
     else
         assert_year "$USAGE_STATUS" "$year" 
 
-        url="$(printf "$YEAR_URL" $year)"
-        code=$(curl -o /tmp/aoc_year -s -w '%{http_code}' -b "$JAR" "$url")
-        [ "$code" -ne 200 ] && die "http request failed -- code $code"
+        url="$(printf "$YEAR_URL" "$year")"
+        request "$url" > /tmp/aoc_year
 
         AWK_PARSE_DAYS='BEGIN { RS="<"; FS="=" }
         $1 == "a aria-label" { printf "%s\n", $2 }'
@@ -117,15 +129,16 @@ auth_cmd() {
     stty echo
     printf "\n"
 
-    # Get csrf token and session cookie for reddit login.
-    csrf=$(curl -c "$JAR" "https://www.reddit.com/login/" | \
-           grep 'csrf_token' | \
-           grep -Eo "[0-9a-z]{40}" \
-           || exit 1)
+    rm -f "$JAR"
 
-    # Sign in to reddit.
+    echo "Fetching CSRF token, reddit login session cookie..."
+    csrf=$(request "https://www.reddit.com/login/" -c "$JAR" | \
+           grep 'csrf_token' | \
+           grep -Eo "[0-9a-z]{40}")
+
+    echo "Signing in to reddit..."
     LOGIN_PARAMS="username=$username&password=$password&csrf_token=$csrf"
-    code=$(curl -H "$AGENT" --data "$LOGIN_PARAMS" \
+    code=$(curl -s -H "$AGENT" --data "$LOGIN_PARAMS" \
                 -b "$JAR" -c "$JAR" \
                 -o /dev/null -w '%{http_code}' \
                 "https://www.reddit.com/login" \
@@ -136,23 +149,25 @@ auth_cmd() {
         exit 1
     fi
 
-    # Get uh token from reddit.
-    uh=$(curl -H "$AGENT" \
+    echo "Fetching uh token..."
+    uh=$(curl -s -H "$AGENT" \
               -b "$JAR" \
               -L "$AUTH_REDDIT_URL" | \
          grep -Eo "[0-9a-z]{50}" | \
          head -n1 \
          || exit 1)
 
-    # Authorize application and obtain code from reddit.
+    echo "Authorizing application..."
     AUTH_PARAMS="client_id=macQY9D1vLELaw&duration=temporary&redirect_uri=https://adventofcode.com/auth/reddit/callback&response_type=code&scope=identity&state=x&uh=$uh&authorize=Accept"
-    curl --data "$AUTH_PARAMS" \
+    curl -s --data "$AUTH_PARAMS" \
          -H "$AGENT" \
          -b "$JAR" -c "$JAR" \
          -L "https://www.reddit.com/api/v1/authorize" > /dev/null
 
     # Keep only the needed session cookie.
     sed -i -n '/adventofcode.com/p' "$JAR"
+
+    echo "Done."
 }
 
 fetch_cmd() {
@@ -178,14 +193,7 @@ fetch_cmd() {
 
     mkdir -p "$PUZZLE_DIR"
     echo "Fetching $object..."
-    code=$(curl -s -b "$JAR" -o "$output_path" -w '%{http_code}' "$url")
-    if [ "$code" -eq 400 ]; then
-        rm "$input"
-        echo "not logged in"
-        exit 1
-    elif [ "$code" -ne 200 ]; then
-        die 'HTTP request failed -- code %s' $code
-    fi
+    request "$url" > "$output_path"
 }
 
 run_cmd() {
@@ -238,7 +246,7 @@ submit_cmd() {
     [ -z "$ans" ] && die "answer not provided\n%s" "$USAGE_SUBMIT"
 
     url="$(printf "$ANSWER_URL" $year $day)"
-    curl -s --data "level=$part&answer=$ans" -b "$JAR" "$url" | $HTML_SHOW
+    request "$url" --data "level=$part&answer=$ans" | $HTML_SHOW
 }
 
 clean_cmd() {
@@ -283,5 +291,7 @@ case $command in
     help) help_cmd "$@";;
     *) die 'invalid command -- %s\n\n%s' "$command" "$USAGE";;
 esac
+
+rm -f /tmp/aoc_*
 
 exit 0

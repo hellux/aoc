@@ -197,11 +197,6 @@ fetch_cmd() {
 }
 
 run_cmd() {
-    year="$1"
-    assert_year "$USAGE_RUN" "$year" 
-    day="$2"
-    assert_day "$USAGE_RUN" "$day" 
-
     input=""
     input_file=""
     exec_name="$EXEC_NAME"
@@ -213,6 +208,11 @@ run_cmd() {
         esac
     done
     shift $((OPTIND-1))
+
+    year="$1"
+    assert_year "$USAGE_RUN" "$year"
+    day="$2"
+    assert_day "$USAGE_RUN" "$day"
 
     day_dir="$(echo $(printf "$DAY_FSTR" $year $day)*)"
     executable="$day_dir/$exec_name"

@@ -17,12 +17,16 @@ YEAR_URL="$BASE_URL/%d"
 EXEC_NAME=solution
 AGENT="user-agent: Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101 Firefox/68.0"
 
-OBJ_FSTR='%s/%s_%d-%02d'
-DAY_FSTR='%d/day%02d_'
-
 HTML_SHOW="elinks -dump -dump-color-mode 1 -no-references -no-numbering"
 PUZZLE_DIR='puzzles'
 JAR='cookies.jar'
+
+OBJ_FSTR="$PUZZLE_DIR/aoc_%d-%02d_%s"
+DAY_FSTR="%d/day%02d_"
+
+OBJ_ANS=answer
+OBJ_INPUT=input
+OBJ_DESC=desc
 
 USAGE="usage: aoc <command> [<args>]
 
@@ -180,12 +184,12 @@ fetch_cmd() {
     day="$2"
     assert_day "$USAGE_FETCH" "$day" 
 
-    output_path="$(printf "$OBJ_FSTR" "$PUZZLE_DIR" "$object" $year $day)"
+    output_path="$(printf "$OBJ_FSTR" $year $day "$object")"
     url=""
     needs_auth=false
     case "$object" in
-        input) url="$(printf "$INPUT_URL" $year $day)"; needs_auth=true;;
-        desc) url="$(printf "$DESC_URL" $year $day)";;
+        $OBJ_INPUT) url="$(printf "$INPUT_URL" $year $day)"; needs_auth=true;;
+        $OBJ_DESC) url="$(printf "$DESC_URL" $year $day)";;
         *) die "invalid object to fetch -- %s" "$object";;
     esac
 
@@ -215,20 +219,24 @@ run_cmd() {
     assert_day "$USAGE_RUN" "$day"
 
     day_dir="$(echo $(printf "$DAY_FSTR" $year $day)*)"
-    executable="$day_dir/$exec_name"
+    exe="$day_dir/$exec_name"
 
     [ -d "$day_dir" ] || die "no solution directory at %s" "$day_dir"
 
     if [ -z "$input" ]; then
         if [ -z "$input_file" ]; then
-            input_file=$(printf "$OBJ_FSTR" "$PUZZLE_DIR" "input" $year $day)
+            input_file=$(printf "$OBJ_FSTR" $year $day $OBJ_INPUT)
             [ -r $input_file ] || fetch_cmd "input" $year $day
         fi
         [ ! -r $input_file ] && echo "can't read input file" && exit 1
         input="$(cat "$input_file")"
     fi
 
-    make -s $executable && printf "%s" "$input" | "./$executable"
+    answer_file=$(printf "$OBJ_FSTR" $year $day "answer")
+    make -s $exe && printf "%s" "$input" | "./$exe" > $answer_file \
+        || die "execution failed"
+
+    cat "$answer_file"
 }
 
 submit_cmd() {
@@ -245,8 +253,16 @@ submit_cmd() {
     ans="$4"
     [ -z "$ans" ] && die "answer not provided\n%s" "$USAGE_SUBMIT"
 
-    url="$(printf "$ANSWER_URL" $year $day)"
-    request "$url" --data "level=$part&answer=$ans" | $HTML_SHOW
+    printf "Submit answer \"%s\" for part %d of day %d, %d (y/N)? " \
+           "$ans" "$part" "$day" "$year"
+    read prompt
+
+    if [ "$prompt" != "${prompt#[Yy]}" ]; then
+        url="$(printf "$ANSWER_URL" $year $day)"
+        request "$url" --data "level=$part&answer=$ans" | $HTML_SHOW
+    else
+        echo "Submission cancelled."
+    fi
 }
 
 clean_cmd() {

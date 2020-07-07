@@ -499,7 +499,7 @@ submit_cmd() {
         url="$(printf "$ANSWER_URL" "$year" "$day")"
         request "$url" --data "level=$part&answer=$ans" > "$RUNTIME/submit"
 
-        if grep -q "You have completed" "$RUNTIME/submit"; then
+        if grep -q "That's the right answer!" "$RUNTIME/submit"; then
             # Update completion in cache
             if [ -r "$CACHE/completed_$year" ]; then
                 sed -i 's/'$day'\t./'$day'\t'$part'/' "$CACHE/completed_$year"
@@ -511,7 +511,10 @@ submit_cmd() {
             fi
         fi
 
-        grep '<article>' "$RUNTIME/submit" | sed 's/<[^>]*>//g'
+        grep '<article>' "$RUNTIME/submit" \
+            | sed 's/<[^>]*>/ /g' \
+            | tr -s '[:space:]' \
+            | sed 's/^\s*//g;s/[!.][^!^.]*$/!/'
     else
         echo "Submission cancelled."
     fi
@@ -520,7 +523,8 @@ submit_cmd() {
 clean_cmd() {
     make -s clean
     rm -rf "$CACHE"
-    find . -type f -print0 -name "$EXEC_NAME" | xargs rm -f
+    [ -z "$EXEC_NAME" ] && die
+    find . -type f -name "$EXEC_NAME" | xargs rm -f
 }
 
 help_cmd() {

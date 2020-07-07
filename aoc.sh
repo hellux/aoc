@@ -73,7 +73,10 @@ USAGE_HELP="usage: aoc.sh help <command>
 
 $COMMANDS"
 
-USAGE_AUTH="usage: aoc.sh auth"
+USAGE_AUTH="usage: aoc.sh auth <service>
+
+services:
+    reddit"
 
 USAGE_SELECT="usage: aoc.sh [-y <year>] [-d <day>] [-p <part>] select [command]
 
@@ -281,6 +284,18 @@ status_cmd() {
 }
 
 auth_cmd() {
+    service="$1"
+
+    [ -z "$service" ] && die "no service provided.\n\n%s" "$USAGE_AUTH"
+
+    case "$service" in
+        reddit) auth_reddit;;
+        *) die 'invalid service, not implemented -- %s.\n\n%s' \
+               "$service" "$USAGE_AUTH";;
+    esac
+}
+
+auth_reddit() {
     # Get credentials from user.
     printf "reddit username: "
     read username

@@ -60,7 +60,7 @@ COMMANDS="commands:
     submit  -- submit answer for puzzle
     clean   -- delete all build files, fetched items, cookies
     help    -- get help about command"
-USAGE="usage: aoc.sh [<args>] <command> [<args>]
+USAGE="usage: aoc.sh [<arg>..] <command> [<arg>..]
 
 flags:
     -y      -- select year
@@ -78,7 +78,7 @@ USAGE_AUTH="usage: aoc.sh auth <service>
 services:
     reddit"
 
-USAGE_SELECT="usage: aoc.sh [-y <year>] [-d <day>] [-p <part>] select [command]
+USAGE_SELECT="usage: aoc.sh [<arg>..] select [<year>|<day>|<command>]
 
 commands:
     [n]ext  -- select next puzzle
@@ -134,9 +134,9 @@ request() {
 }
 
 select_cmd() {
-    cmd="$1"
-    if [ -n "$cmd" ]; then
-        case "$cmd" in
+    input="$1"
+    if [ -n "$input" ]; then
+        case "$input" in
             n|next)
                 if [ "$day" -eq 25 ];
                 then year=$((year+1)); day=1
@@ -151,7 +151,15 @@ select_cmd() {
                 fi
 
                 part=1;;
-            *) die 'invalid command -- %s\n\n%s' "$cmd" "$USAGE_SELECT"
+            *)
+                if [ 1 -le "$input" ] && [ "$input" -le 25 ] 2> /dev/null; then
+                    day="$input"
+                elif [ "$START_YEAR" -le "$input" ] 2> /dev/null; then
+                    year="$input"
+                else
+                    die 'invalid input -- "%s"\n\n%s' "$input" "$USAGE_SELECT"
+                fi
+                ;;
         esac
     fi
 
@@ -290,7 +298,7 @@ auth_cmd() {
 
     case "$service" in
         reddit) auth_reddit;;
-        *) die 'invalid service, not implemented -- %s.\n\n%s' \
+        *) die 'invalid service, not implemented -- "%s".\n\n%s' \
                "$service" "$USAGE_AUTH";;
     esac
 }

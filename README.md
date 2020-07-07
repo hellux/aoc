@@ -57,7 +57,7 @@ Check completed puzzles with status command.
 
 Select the seventh day.
 
-    $ ./aoc.sh -d 7 select
+    $ ./aoc.sh select 7
 
 View the puzzle description (with `elinks` + `less`).
 
@@ -85,5 +85,4 @@ Submit given answer.
     $ ./aoc.sh submit
     Submit answer "23989" for part 1 of day 7, 2015 (y/N)? y
 
-    That's the right answer!  You are one gold star closer to powering the weather machine. [Continue to Part Two]
-
+    That's the right answer! You are one gold star closer to powering the weather machine.

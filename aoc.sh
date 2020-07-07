@@ -575,26 +575,23 @@ fi
     || die 'invalid part -- "%s"\n' "$part"
 
 cmd=$1
-if [ -z "$cmd" ]; then
-    [ "$OPTIND" -eq 1 ] && die 'no command or arguments provided\n\n%s' \
-                               "$USAGE"
-else
-    shift 1
+[ -z "$cmd" ] && die 'no command provided.\n\n%s' "$USAGE"
 
-    case "$cmd" in
-        select) select_cmd "$@";;
-        auth) auth_cmd "$@";;
-        status) status_cmd "$@";;
-        fetch) fetch_cmd "$@";;
-        edit) edit_cmd "$@";;
-        view) view_cmd "$@";;
-        run) run_cmd "$@";;
-        submit) submit_cmd "$@";;
-        clean) clean_cmd "$@";;
-        help) help_cmd "$@";;
-        *) die 'invalid command -- "%s"\n\n%s' "$cmd" "$USAGE";;
-    esac
-fi
+shift 1
+
+case "$cmd" in
+    select) select_cmd "$@";;
+    auth) auth_cmd "$@";;
+    status) status_cmd "$@";;
+    fetch) fetch_cmd "$@";;
+    edit) edit_cmd "$@";;
+    view) view_cmd "$@";;
+    run) run_cmd "$@";;
+    submit) submit_cmd "$@";;
+    clean) clean_cmd "$@";;
+    help) help_cmd "$@";;
+    *) die 'invalid command -- "%s"\n\n%s' "$cmd" "$USAGE";;
+esac
 
 rm -rf "$RUNTIME"
 

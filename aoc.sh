@@ -418,9 +418,25 @@ edit_cmd() {
     shift $((OPTIND-1))
 
     day_dir="$(echo $(printf "$DAY_FSTR" $year $day)*)"
-    [ -d "$day_dir" ] || die '"%s" is not a directory.' "$day_dir"
+    if [ ! -d "$day_dir" ]; then
+        day_dir_pre="$(printf "${DAY_FSTR}%s" $year $day "$dirname")"
+        printf 'Solution directory name: %s' $day_dir_pre
+        read dir_in
+        [ -z "$dir_in" ] && die "no name provided."
+
+        day_dir="$day_dir_pre$dir_in"
+        mkdir "$day_dir"
+    fi
 
     src="$(echo $day_dir/$name.$extension)"
+
+    if [ ! -r "$src" ]; then
+        printf 'Provide file extension: %s.' "$name"
+        read ext_in
+        [ -z "$ext_in" ] && die "no extension provided."
+        extension=$ext_in
+        src="$day_dir/$name.$extension"
+    fi
 
     $EDITOR "$src"
 }

@@ -132,9 +132,9 @@ request() {
     cat "$RUNTIME/request"
 }
 
-current_part() {
+completed_part() {
     [ -r "$CACHE/completed_$year" ] || status_cmd -s days
-    head -n "$day" "$CACHE/completed_$year" | tail -n1 | cut -f2
+    sed -n "${day}p" "$CACHE/completed_$year"
 }
 
 select_cmd() {
@@ -211,8 +211,8 @@ status_cmd() {
                 f="$CACHE/completed_$y"
                 printf "%d" "$y"
                 if [ -r "$f" ] && [ -f "$CACHE/user" ]; then
-                    golden=$(grep "2$" "$f" | wc -l)
-                    silver=$(grep  "1$" "$f" | wc -l)
+                    golden=$(grep "2" "$f" | wc -l)
+                    silver=$(grep "1" "$f" | wc -l)
                     total=$((golden*2 + silver))
                     printf "\t%d\t%d\t%d" $golden $silver $total
                 else
@@ -222,6 +222,8 @@ status_cmd() {
             done
             ;;
         days)
+            [ -r "$CACHE/user" ] || die "not signed in"
+
             url="$(printf "$YEAR_URL" "$year")"
 
             if [ "$sync" = true ] || [ ! -r "$CACHE/completed_$year" ]; then
@@ -230,15 +232,14 @@ status_cmd() {
                 echo Puzzles $year:
                 awk "$AWK_PARSE_DAYS" "$RUNTIME/year" \
                     | rev | cut -c6- | rev | tr -d '"' \
-                    | sed '/[0-9]$/ s/$/\t0/' \
-                    | sed 's/, /\t/;s/two stars/2/;s/one star/1/' \
-                    | sed 's/Day //' \
                     | sed '1!G;h;$!d' \
+                    | sed 's/.*two stars.*/2/;s/.*one star.*/1/;s/Day.*/0/' \
                     > "$CACHE/completed_$year"
             fi
 
+            d=1
             printf "Day\tStars\tTitle (solution name)\n"
-            while read -r d comp; do
+            while read -r comp; do
                 object_path="$(printf "$OBJ_FSTR" "$year" "$d" "$OBJ_DESC")"
                 if [ -r "$object_path" ]; then
                     title=$(grep '<article' "$object_path" \
@@ -266,6 +267,7 @@ status_cmd() {
                 fi
 
                 printf '%d\t%s\t%s\n' "$d" "$stars" "$title"
+                d=$((d+1))
             done < "$CACHE/completed_$year"
             ;;
         login)
@@ -382,10 +384,8 @@ view_cmd() {
         # Fetch if second part available
         p1_completed=false
         p2_downloaded=false
-        comp="$CACHE/completed_$year"
 
-        [ -r "$comp" ] && [ $(current_part) -gt 0 ] \
-            && p1_completed=true
+        [ $(completed_part) -ge 1 ] && p1_completed=true
         [ $(grep '<article' "$object_path" | wc -l) -eq 2 ] \
             && p2_downloaded=true
         if [ "$p1_completed" = true ] && [ "$p2_downloaded" != true ]
@@ -485,7 +485,7 @@ run_cmd() {
 submit_cmd() {
     [ -f "$JAR" ] || die "not signed in"
 
-    case $(current_part) in
+    case $(completed_part) in
         0) part=1;;
         1) part=2;;
         2) die "Both parts already completed for day $day $year";;
@@ -514,7 +514,7 @@ submit_cmd() {
         if grep -q "That's the right answer!" "$RUNTIME/submit"; then
             # Update completion in cache
             if [ -r "$CACHE/completed_$year" ]; then
-                sed -i 's/'$day'\t./'$day'\t'$part'/' "$CACHE/completed_$year"
+                sed -i ''$day' s/.*/'$part'/' "$CACHE/completed_$year"
             fi
         fi
 

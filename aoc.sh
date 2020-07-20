@@ -410,7 +410,7 @@ view_cmd() {
         *) cp "$object_path" "$RUNTIME/view";;
     esac
 
-    less "$RUNTIME/view"
+    less -r "$RUNTIME/view"
 }
 
 edit_cmd() {

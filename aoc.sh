@@ -188,6 +188,8 @@ status_cmd() {
 
     case "$cmd" in
         events)
+            [ -r "$CACHE/user" ] || die "not signed in"
+
             if [ "$sync" = true ] || [ ! -r "$CACHE/events" ]; then
                 # Get available events
                 request "$EVENTS_URL" > "$RUNTIME/events"
@@ -207,11 +209,15 @@ status_cmd() {
                 fi
             fi
 
+            user=$(cat "$CACHE/user")
+
+            echo "Event completion for [$user]:"
+            echo '-----------------------------'
             printf "Year\tGolden\tSilver\tTotal\n"
             for y in $(cat "$CACHE/events"); do
                 f="$CACHE/completed_$y"
                 printf "%d" "$y"
-                if [ -r "$f" ] && [ -f "$CACHE/user" ]; then
+                if [ -r "$f" ]; then
                     golden=$(grep "2" "$f" | wc -l)
                     silver=$(grep "1" "$f" | wc -l)
                     total=$((golden*2 + silver))
@@ -225,6 +231,7 @@ status_cmd() {
         days)
             [ -r "$CACHE/user" ] || die "not signed in"
 
+            user=$(cat "$CACHE/user")
             url="$(printf "$YEAR_URL" "$year")"
 
             if [ "$sync" = true ] || [ ! -r "$CACHE/completed_$year" ]; then
@@ -239,6 +246,8 @@ status_cmd() {
             fi
 
             d=1
+            echo "$year completion for [$user]:"
+            echo '-------------------------------------'
             printf "Day\tStars\tTitle (solution name)\n"
             while read -r comp; do
                 object_path="$(printf "$OBJ_FSTR" "$year" "$d" "$OBJ_DESC")"
@@ -267,7 +276,13 @@ status_cmd() {
                     stars=""
                 fi
 
-                printf '%d\t%s\t%s\n' "$d" "$stars" "$title"
+                if [ "$d" -eq "$cached_day" ] && [ "$year" -eq "$cached_year" ];
+                then day_str="[$d]"
+                else day_str=" $d"
+                fi
+
+                printf '%s\t%s\t%s\n' "$day_str" "$stars" "$title"
+
                 d=$((d+1))
             done < "$CACHE/completed_$year"
             ;;

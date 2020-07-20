@@ -50,7 +50,7 @@ AWK_PARSE_DAYS='BEGIN { RS="<"; FS="=" }
 $1 == "a aria-label" { printf "%s\n", $2 }'
 
 COMMANDS="commands:
-    select  -- save current selection of year, day and part
+    select  -- save current selection of year and day
     status  -- show selection, login and completion status
     auth    -- authenticate user and create session cookie
     fetch   -- fetch puzzle description or input
@@ -65,7 +65,6 @@ USAGE="usage: aoc.sh [<arg>..] <command> [<arg>..]
 flags:
     -y      -- select year
     -d      -- select day
-    -p      -- select part
     -q      -- query selection
 
 $COMMANDS"
@@ -133,6 +132,11 @@ request() {
     cat "$RUNTIME/request"
 }
 
+current_part() {
+    [ -r "$CACHE/completed_$year" ] || status_cmd -s days
+    head -n "$day" "$CACHE/completed_$year" | tail -n1 | cut -f2
+}
+
 select_cmd() {
     input="$1"
     if [ -n "$input" ]; then
@@ -141,16 +145,12 @@ select_cmd() {
                 if [ "$day" -eq 25 ];
                 then year=$((year+1)); day=1
                 else day=$((day+1));
-                fi
-
-                part=1;;
+                fi;;
             p|prev)
                 if [ "$day" -eq 1 ];
                 then year=$((year-1)); day=25
                 else day=$((day-1));
-                fi
-
-                part=1;;
+                fi;;
             *)
                 if [ 1 -le "$input" ] && [ "$input" -le 25 ] 2> /dev/null; then
                     day="$input"
@@ -158,17 +158,15 @@ select_cmd() {
                     year="$input"
                 else
                     die 'invalid input -- "%s"\n\n%s' "$input" "$USAGE_SELECT"
-                fi
-                ;;
+                fi;;
         esac
     fi
 
     # Update selections cache
     echo "$year" > "$CACHE/year"
     echo "$day"  > "$CACHE/day"
-    echo "$part" > "$CACHE/part"
 
-    printf "[ %d - %02d - part %d ] set as current selection.\n" $year $day $part
+    printf "[ %d - day %02d ] set as current selection.\n" $year $day
 }
 
 status_cmd() {
@@ -366,7 +364,7 @@ fetch_cmd() {
         *) die 'invalid object to fetch -- "%s"' "$object";;
     esac
 
-    [ "$needs_auth" = "true" -a ! -f "$JAR" ] && auth_cmd
+    [ "$needs_auth" = "true" -a ! -f "$JAR" ] && die "not signed in"
 
     output_path="$(printf "$OBJ_FSTR" $year $day "$object")"
     mkdir -p "$PUZZLE_DIR"
@@ -386,7 +384,7 @@ view_cmd() {
         p2_downloaded=false
         comp="$CACHE/completed_$year"
 
-        [ -r "$comp" ] && head -n $day $comp | tail -n1 | grep -q '[12]$' \
+        [ -r "$comp" ] && [ $(current_part) -gt 0 ] \
             && p1_completed=true
         [ $(grep '<article' "$object_path" | wc -l) -eq 2 ] \
             && p2_downloaded=true
@@ -485,7 +483,13 @@ run_cmd() {
 }
 
 submit_cmd() {
-    [ -f "$JAR" ] || auth_cmd
+    [ -f "$JAR" ] || die "not signed in"
+
+    case $(current_part) in
+        0) part=1;;
+        1) part=2;;
+        2) die "Both parts already completed for day $day $year";;
+    esac
 
     ans="$1"
     if [ -z "$ans" ]; then
@@ -511,11 +515,6 @@ submit_cmd() {
             # Update completion in cache
             if [ -r "$CACHE/completed_$year" ]; then
                 sed -i 's/'$day'\t./'$day'\t'$part'/' "$CACHE/completed_$year"
-            fi
-
-            if [ "$part" -eq 1 ];
-            then part=2;
-            else part=1;
             fi
         fi
 
@@ -565,20 +564,17 @@ help_cmd() {
 # Cache default selections if not cached
 [ -r "$CACHE/year" ] || echo "$START_YEAR" > "$CACHE/year"
 [ -r "$CACHE/day"  ] || echo "$START_DAY"  > "$CACHE/day"
-[ -r "$CACHE/part" ] || echo "$START_PART" > "$CACHE/part"
 
 cached_year=$(cat "$CACHE/year")
 cached_day=$(cat "$CACHE/day")
-cached_part=$(cat "$CACHE/part")
 
 query=false
-year=;day=;part=
+year=;day=
 while getopts qy:d:p: flag; do
     case "$flag" in
         q) query=true;;
         y) year="$OPTARG";;
         d) day="$OPTARG";;
-        p) part="$OPTARG";;
         *) die 'invalid flag\n\n%s' "$USAGE"
     esac
 done
@@ -596,26 +592,17 @@ if [ "$query" = "true" ]; then
         read new
         [ -n "$new" ] && day="$new"
     fi
-
-    if [ -z "$part" ]; then
-        printf "Part [$cached_part]: "
-        read new
-        [ -n "$new" ] && day="$new"
-    fi
 fi
 
 # Get cached selections if not set
 [ -z "$year" ] && year=$cached_year
 [ -z "$day"  ] &&  day=$cached_day
-[ -z "$part" ] && part=$cached_part
 
 # Assert valid selections
 [ "$year" -ge "$START_YEAR" ] 2> /dev/null \
     || die 'invalid year -- "%s"\n' "$year"
 [ "$day" -ge 1 -a "$day" -le 25 ] 2> /dev/null \
     || die 'invalid day -- "%s"\n' "$day"
-[ "$part" = 1 -o "$part" = 2 ] 2> /dev/null \
-    || die 'invalid part -- "%s"\n' "$part"
 
 cmd=$1
 [ -z "$cmd" ] && die 'no command provided.\n\n%s' "$USAGE"

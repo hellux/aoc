@@ -182,7 +182,7 @@ status_cmd() {
 
     cmd=$1
     if [ -z "$cmd" ]
-    then cmd=events
+    then cmd=days
     else shift 1
     fi
 

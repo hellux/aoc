@@ -386,11 +386,11 @@ view_cmd() {
         p2_downloaded=false
         comp="$CACHE/completed_$year"
 
-        [ -r "$comp" ] && head -n 12 $comp | tail -n1 | grep -q '2$' \
+        [ -r "$comp" ] && head -n $day $comp | tail -n1 | grep -q '[12]$' \
             && p1_completed=true
         [ $(grep '<article' "$object_path" | wc -l) -eq 2 ] \
             && p2_downloaded=true
-        if [ "$1_completed" = true ] && [ "$p2_downloaded" != true ]
+        if [ "$p1_completed" = true ] && [ "$p2_downloaded" != true ]
         then fetch=true
         fi
     else

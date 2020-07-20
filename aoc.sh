@@ -171,6 +171,7 @@ select_cmd() {
 
 status_cmd() {
     sync=false
+    OPTIND=1
     while getopts s flag; do
         case "$flag" in
             s) sync=true;;
@@ -414,6 +415,7 @@ view_cmd() {
 edit_cmd() {
     extension="*"
     name="$EXEC_NAME"
+    OPTIND=1
     while getopts e: flag; do
         case "$flag" in
             n) name="$OPTARG";;
@@ -451,6 +453,7 @@ run_cmd() {
     input=""
     input_file=""
     exec_name="$EXEC_NAME"
+    OPTIND=1
     while getopts i:I:n: flag; do
         case "$flag" in
             i) input=$OPTARG;;

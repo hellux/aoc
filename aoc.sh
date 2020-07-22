@@ -408,7 +408,10 @@ view_cmd() {
 
     object_path="$(printf "$OBJ_FSTR" "$year" "$day" "$object")"
     fetch=false
-    if [ -r "$object_path" ]; then
+    if [ ! -r "$object_path" ]; then
+        # Fetch if non-existent
+        fetch=true
+    elif [ "$object" = "$OBJ_DESC" ]; then
         # Fetch if second part available
         p1_completed=false
         p2_downloaded=false
@@ -419,9 +422,6 @@ view_cmd() {
         if [ "$p1_completed" = true ] && [ "$p2_downloaded" != true ]
         then fetch=true
         fi
-    else
-        # Fetch if non-existent
-        fetch=true
     fi
 
     [ "$fetch" = "true" ] && fetch_cmd "$object"

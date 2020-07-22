@@ -253,30 +253,29 @@ status_cmd() {
             echo '-------------------------------------'
             printf "Day\tStars\tTitle (solution name)\n"
             while read -r comp; do
-                object_path="$(printf "$OBJ_FSTR" "$year" "$d" "$OBJ_DESC")"
-                if [ -r "$object_path" ]; then
-                    title=$(grep '<article' "$object_path" \
+                desc_path="$(printf "$OBJ_FSTR" "$year" "$d" "$OBJ_DESC")"
+                if [ -r "$desc_path" ]; then
+                    puzzle_title="$(grep '<article' "$desc_path" \
                             | awk 'BEGIN {FS="---"; RS=":"} NR==2 {print $1}' \
                             | xargs \
                             | sed "s/&nbsp;/ /g; s/&amp;/\&/g; s/&lt;/\</g;
                                    s/&gt;/\>/g; s/&quot;/\"/g; s/&ldquo;/\"/g;
-                                   s/&rdquo;/\"/g; s/&apos;/'/g;")
-
-                    src_dir="$(echo $(printf "$DAY_FSTR" $year $d)*)"
-                    if [ -r "$src_dir" ]; then
-                        name=$(basename $src_dir | cut -c 7-)
-                        title="$title ($name)"
-                    fi
+                                   s/&rdquo;/\"/g; s/&apos;/'/g;") "
                 else
-                    title=""
+                    puzzle_title=""
                 fi
 
-                if [ "$comp" -eq 1 ]; then
-                    stars="*"
-                elif [ $comp -eq 2 ]; then
-                    stars="**"
-                else
-                    stars=""
+                src_dir="$(echo $(printf "$DAY_FSTR" $year $d)*)"
+                if [ -r "$src_dir" ];
+                then dirname="($(basename $src_dir | cut -c 7-))"
+                else dirname=""
+                fi
+
+                title="$puzzle_title$dirname"
+
+                if [ "$comp" -eq 1 ]; then stars="*"
+                elif [ "$comp" -eq 2 ]; then stars="**"
+                else stars=""
                 fi
 
                 if [ "$d" -eq "$cached_day" ] && [ "$year" -eq "$cached_year" ];

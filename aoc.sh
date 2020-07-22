@@ -496,17 +496,18 @@ run_cmd() {
 
     [ -d "$day_dir" ] || die "no solution directory at %s" "$day_dir"
 
-    if [ -z "$input" ]; then
-        if [ -z "$input_file" ]; then
-            input_file=$(printf "$OBJ_FSTR" $year $day $OBJ_INPUT)
-            [ -r $input_file ] || fetch_cmd "input" $year $day
-        fi
-        [ ! -r $input_file ] && echo "can't read input file" && exit 1
-        input="$(cat "$input_file")"
+    if [ -n "$input" ]; then
+        input_file="$RUNTIME/input"
+        echo "$input" > "$input_file"
+    elif [ -z "$input_file" ]; then
+        input_file=$(printf "$OBJ_FSTR" $year $day $OBJ_INPUT)
+        [ -r "$input_file" ] || fetch_cmd "input" $year $day
     fi
 
+    [ -r "$input_file" ] || die "can't read input file"
+
     answer_file=$(printf "$OBJ_FSTR" $year $day "$OBJ_ANS")
-    make -s "$exe" && printf "%s" "$input" | "./$exe" > $answer_file \
+    make -s "$exe" && "./$exe" < "$input_file" > "$answer_file" \
         || die "execution failed"
 
     cat "$answer_file"

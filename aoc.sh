@@ -99,7 +99,10 @@ OBJECTS="objects:
 USAGE_FETCH="usage: aoc.sh fetch <object>
 
 $OBJECTS"
-USAGE_VIEW="usage: aoc.sh view <object>
+USAGE_VIEW="usage: aoc.sh view [-c <cmd>] <object>
+
+flags:
+    -c      -- provide command to view object with
 
 $OBJECTS"
 
@@ -391,6 +394,16 @@ fetch_cmd() {
 }
 
 view_cmd() {
+    viewer="less -r"
+    OPTIND=1
+    while getopts c: flag; do
+        case "$flag" in
+            c) viewer="$OPTARG";;
+            *) die 'invalid flag\n\n%s' "$USAGE_VIEW"
+        esac
+    done
+    shift $((OPTIND-1))
+
     object=$1
     [ -z "$object" ] && die 'no object provided\n%s' "$USAGE_VIEW"
 
@@ -424,7 +437,7 @@ view_cmd() {
         *) cp "$object_path" "$RUNTIME/view";;
     esac
 
-    less -r "$RUNTIME/view"
+    $viewer "$RUNTIME/view"
 }
 
 edit_cmd() {

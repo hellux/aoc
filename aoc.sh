@@ -78,7 +78,7 @@ USAGE_AUTH="usage: aoc.sh auth <service>
 services:
     reddit"
 
-USAGE_SELECT="usage: aoc.sh [<arg>..] select [<year>|<day>|<command>]
+USAGE_SELECT="usage: aoc.sh [<arg>..] select [<year>|<day>|<command>..]
 
 commands:
     [n]ext  -- select next puzzle
@@ -134,8 +134,7 @@ request() {
 }
 
 select_cmd() {
-    input="$1"
-    if [ -n "$input" ]; then
+    for input in "$@"; do
         case "$input" in
             n|next)
                 if [ "$day" -eq 25 ];
@@ -152,16 +151,15 @@ select_cmd() {
 
                 part=1;;
             *)
-                if [ 1 -le "$input" ] && [ "$input" -le 25 ] 2> /dev/null; then
-                    day="$input"
-                elif [ "$START_YEAR" -le "$input" ] 2> /dev/null; then
-                    year="$input"
-                else
-                    die 'invalid input -- "%s"\n\n%s' "$input" "$USAGE_SELECT"
-                fi
-                ;;
+                if [ 1 -le "$input" ] && [ "$input" -le 25 ] 2> /dev/null;
+                then day="$input"
+                elif [ "$START_YEAR" -le "$input" ] 2> /dev/null;
+                then year="$input"
+                else die 'invalid input -- "%s"\n\n%s'
+                         "$input" "$USAGE_SELECT"
+                fi;;
         esac
-    fi
+    done
 
     # Update selections cache
     echo "$year" > "$CACHE/year"

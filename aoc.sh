@@ -50,7 +50,7 @@ AWK_PARSE_DAYS='BEGIN { RS="<"; FS="=" }
 $1 == "a aria-label" { printf "%s\n", $2 }'
 
 COMMANDS="commands:
-    select  -- save current selection of year, day and part
+    select  -- save current selection of year and day
     status  -- show selection, login and completion status
     auth    -- authenticate user and create session cookie
     fetch   -- fetch puzzle description or input
@@ -65,7 +65,6 @@ USAGE="usage: aoc.sh [<arg>..] <command> [<arg>..]
 flags:
     -y      -- select year
     -d      -- select day
-    -p      -- select part
     -q      -- query selection
 
 $COMMANDS"
@@ -100,7 +99,10 @@ OBJECTS="objects:
 USAGE_FETCH="usage: aoc.sh fetch <object>
 
 $OBJECTS"
-USAGE_VIEW="usage: aoc.sh view <object>
+USAGE_VIEW="usage: aoc.sh view [-c <cmd>] <object>
+
+flags:
+    -c      -- provide command to view object with
 
 $OBJECTS"
 
@@ -133,6 +135,11 @@ request() {
     cat "$RUNTIME/request"
 }
 
+completed_part() {
+    [ -r "$CACHE/completed_$year" ] || status_cmd -s days
+    sed -n "${day}p" "$CACHE/completed_$year"
+}
+
 select_cmd() {
     for input in "$@"; do
         case "$input" in
@@ -140,16 +147,12 @@ select_cmd() {
                 if [ "$day" -eq 25 ];
                 then year=$((year+1)); day=1
                 else day=$((day+1));
-                fi
-
-                part=1;;
+                fi;;
             p|prev)
                 if [ "$day" -eq 1 ];
                 then year=$((year-1)); day=25
                 else day=$((day-1));
-                fi
-
-                part=1;;
+                fi;;
             *)
                 if [ 1 -le "$input" ] && [ "$input" -le 25 ] 2> /dev/null;
                 then day="$input"
@@ -164,13 +167,13 @@ select_cmd() {
     # Update selections cache
     echo "$year" > "$CACHE/year"
     echo "$day"  > "$CACHE/day"
-    echo "$part" > "$CACHE/part"
 
-    printf "[ %d - %02d - part %d ] set as current selection.\n" $year $day $part
+    printf "[ %d - day %02d ] set as current selection.\n" $year $day
 }
 
 status_cmd() {
     sync=false
+    OPTIND=1
     while getopts s flag; do
         case "$flag" in
             s) sync=true;;
@@ -181,12 +184,14 @@ status_cmd() {
 
     cmd=$1
     if [ -z "$cmd" ]
-    then cmd=events
+    then cmd=days
     else shift 1
     fi
 
     case "$cmd" in
         events)
+            [ -r "$CACHE/user" ] || die "not signed in"
+
             if [ "$sync" = true ] || [ ! -r "$CACHE/events" ]; then
                 # Get available events
                 request "$EVENTS_URL" > "$RUNTIME/events"
@@ -206,13 +211,17 @@ status_cmd() {
                 fi
             fi
 
+            user=$(cat "$CACHE/user")
+
+            echo "Event completion for [$user]:"
+            echo '-----------------------------'
             printf "Year\tGolden\tSilver\tTotal\n"
             for y in $(cat "$CACHE/events"); do
                 f="$CACHE/completed_$y"
                 printf "%d" "$y"
-                if [ -r "$f" ] && [ -f "$CACHE/user" ]; then
-                    golden=$(grep "2$" "$f" | wc -l)
-                    silver=$(grep  "1$" "$f" | wc -l)
+                if [ -r "$f" ]; then
+                    golden=$(grep "2" "$f" | wc -l)
+                    silver=$(grep "1" "$f" | wc -l)
                     total=$((golden*2 + silver))
                     printf "\t%d\t%d\t%d" $golden $silver $total
                 else
@@ -222,6 +231,9 @@ status_cmd() {
             done
             ;;
         days)
+            [ -r "$CACHE/user" ] || die "not signed in"
+
+            user=$(cat "$CACHE/user")
             url="$(printf "$YEAR_URL" "$year")"
 
             if [ "$sync" = true ] || [ ! -r "$CACHE/completed_$year" ]; then
@@ -230,42 +242,49 @@ status_cmd() {
                 echo Puzzles $year:
                 awk "$AWK_PARSE_DAYS" "$RUNTIME/year" \
                     | rev | cut -c6- | rev | tr -d '"' \
-                    | sed '/[0-9]$/ s/$/\t0/' \
-                    | sed 's/, /\t/;s/two stars/2/;s/one star/1/' \
-                    | sed 's/Day //' \
                     | sed '1!G;h;$!d' \
+                    | sed 's/.*two stars.*/2/;s/.*one star.*/1/;s/Day.*/0/' \
                     > "$CACHE/completed_$year"
             fi
 
+            d=1
+            echo "$year completion for [$user]:"
+            echo '-------------------------------------'
             printf "Day\tStars\tTitle (solution name)\n"
-            while read -r d comp; do
-                object_path="$(printf "$OBJ_FSTR" "$year" "$d" "$OBJ_DESC")"
-                if [ -r "$object_path" ]; then
-                    title=$(grep '<article' "$object_path" \
+            while read -r comp; do
+                desc_path="$(printf "$OBJ_FSTR" "$year" "$d" "$OBJ_DESC")"
+                if [ -r "$desc_path" ]; then
+                    puzzle_title="$(grep '<article' "$desc_path" \
                             | awk 'BEGIN {FS="---"; RS=":"} NR==2 {print $1}' \
                             | xargs \
                             | sed "s/&nbsp;/ /g; s/&amp;/\&/g; s/&lt;/\</g;
                                    s/&gt;/\>/g; s/&quot;/\"/g; s/&ldquo;/\"/g;
-                                   s/&rdquo;/\"/g; s/&apos;/'/g;")
-
-                    src_dir="$(echo $(printf "$DAY_FSTR" $year $d)*)"
-                    if [ -r "$src_dir" ]; then
-                        name=$(basename $src_dir | cut -c 7-)
-                        title="$title ($name)"
-                    fi
+                                   s/&rdquo;/\"/g; s/&apos;/'/g;") "
                 else
-                    title=""
+                    puzzle_title=""
                 fi
 
-                if [ "$comp" -eq 1 ]; then
-                    stars="*"
-                elif [ $comp -eq 2 ]; then
-                    stars="**"
-                else
-                    stars=""
+                src_dir="$(echo $(printf "$DAY_FSTR" $year $d)*)"
+                if [ -r "$src_dir" ];
+                then dirname="($(basename $src_dir | cut -c 7-))"
+                else dirname=""
                 fi
 
-                printf '%d\t%s\t%s\n' "$d" "$stars" "$title"
+                title="$puzzle_title$dirname"
+
+                if [ "$comp" -eq 1 ]; then stars="*"
+                elif [ "$comp" -eq 2 ]; then stars="**"
+                else stars=""
+                fi
+
+                if [ "$d" -eq "$cached_day" ] && [ "$year" -eq "$cached_year" ];
+                then day_str="[$d]"
+                else day_str=" $d"
+                fi
+
+                printf '%s\t%s\t%s\n' "$day_str" "$stars" "$title"
+
+                d=$((d+1))
             done < "$CACHE/completed_$year"
             ;;
         login)
@@ -364,7 +383,7 @@ fetch_cmd() {
         *) die 'invalid object to fetch -- "%s"' "$object";;
     esac
 
-    [ "$needs_auth" = "true" -a ! -f "$JAR" ] && auth_cmd
+    [ "$needs_auth" = "true" -a ! -f "$JAR" ] && die "not signed in"
 
     output_path="$(printf "$OBJ_FSTR" $year $day "$object")"
     mkdir -p "$PUZZLE_DIR"
@@ -373,27 +392,35 @@ fetch_cmd() {
 }
 
 view_cmd() {
+    viewer="less -r"
+    OPTIND=1
+    while getopts c: flag; do
+        case "$flag" in
+            c) viewer="$OPTARG";;
+            *) die 'invalid flag\n\n%s' "$USAGE_VIEW"
+        esac
+    done
+    shift $((OPTIND-1))
+
     object=$1
     [ -z "$object" ] && die 'no object provided\n%s' "$USAGE_VIEW"
 
     object_path="$(printf "$OBJ_FSTR" "$year" "$day" "$object")"
     fetch=false
-    if [ -r "$object_path" ]; then
+    if [ ! -r "$object_path" ]; then
+        # Fetch if non-existent
+        fetch=true
+    elif [ "$object" = "$OBJ_DESC" ]; then
         # Fetch if second part available
         p1_completed=false
         p2_downloaded=false
-        comp="$CACHE/completed_$year"
 
-        [ -r "$comp" ] && head -n 12 $comp | tail -n1 | grep -q '2$' \
-            && p1_completed=true
+        [ $(completed_part) -ge 1 ] && p1_completed=true
         [ $(grep '<article' "$object_path" | wc -l) -eq 2 ] \
             && p2_downloaded=true
-        if [ "$1_completed" = true ] && [ "$p2_downloaded" != true ]
+        if [ "$p1_completed" = true ] && [ "$p2_downloaded" != true ]
         then fetch=true
         fi
-    else
-        # Fetch if non-existent
-        fetch=true
     fi
 
     [ "$fetch" = "true" ] && fetch_cmd "$object"
@@ -408,12 +435,13 @@ view_cmd() {
         *) cp "$object_path" "$RUNTIME/view";;
     esac
 
-    less "$RUNTIME/view"
+    $viewer "$RUNTIME/view"
 }
 
 edit_cmd() {
     extension="*"
     name="$EXEC_NAME"
+    OPTIND=1
     while getopts e: flag; do
         case "$flag" in
             n) name="$OPTARG";;
@@ -451,6 +479,7 @@ run_cmd() {
     input=""
     input_file=""
     exec_name="$EXEC_NAME"
+    OPTIND=1
     while getopts i:I:n: flag; do
         case "$flag" in
             i) input=$OPTARG;;
@@ -466,24 +495,31 @@ run_cmd() {
 
     [ -d "$day_dir" ] || die "no solution directory at %s" "$day_dir"
 
-    if [ -z "$input" ]; then
-        if [ -z "$input_file" ]; then
-            input_file=$(printf "$OBJ_FSTR" $year $day $OBJ_INPUT)
-            [ -r $input_file ] || fetch_cmd "input" $year $day
-        fi
-        [ ! -r $input_file ] && echo "can't read input file" && exit 1
-        input="$(cat "$input_file")"
+    if [ -n "$input" ]; then
+        input_file="$RUNTIME/input"
+        echo "$input" > "$input_file"
+    elif [ -z "$input_file" ]; then
+        input_file=$(printf "$OBJ_FSTR" $year $day $OBJ_INPUT)
+        [ -r "$input_file" ] || fetch_cmd "input" $year $day
     fi
 
+    [ -r "$input_file" ] || die "can't read input file"
+
     answer_file=$(printf "$OBJ_FSTR" $year $day "$OBJ_ANS")
-    make -s "$exe" && printf "%s" "$input" | "./$exe" > $answer_file \
+    make -s "$exe" && "./$exe" < "$input_file" > "$answer_file" \
         || die "execution failed"
 
     cat "$answer_file"
 }
 
 submit_cmd() {
-    [ -f "$JAR" ] || auth_cmd
+    [ -f "$JAR" ] || die "not signed in"
+
+    case $(completed_part) in
+        0) part=1;;
+        1) part=2;;
+        2) die "Both parts already completed for day $day $year";;
+    esac
 
     ans="$1"
     if [ -z "$ans" ]; then
@@ -508,12 +544,7 @@ submit_cmd() {
         if grep -q "That's the right answer!" "$RUNTIME/submit"; then
             # Update completion in cache
             if [ -r "$CACHE/completed_$year" ]; then
-                sed -i 's/'$day'\t./'$day'\t'$part'/' "$CACHE/completed_$year"
-            fi
-
-            if [ "$part" -eq 1 ];
-            then part=2;
-            else part=1;
+                sed -i ''$day' s/.*/'$part'/' "$CACHE/completed_$year"
             fi
         fi
 
@@ -563,20 +594,17 @@ help_cmd() {
 # Cache default selections if not cached
 [ -r "$CACHE/year" ] || echo "$START_YEAR" > "$CACHE/year"
 [ -r "$CACHE/day"  ] || echo "$START_DAY"  > "$CACHE/day"
-[ -r "$CACHE/part" ] || echo "$START_PART" > "$CACHE/part"
 
 cached_year=$(cat "$CACHE/year")
 cached_day=$(cat "$CACHE/day")
-cached_part=$(cat "$CACHE/part")
 
 query=false
-year=;day=;part=
+year=;day=
 while getopts qy:d:p: flag; do
     case "$flag" in
         q) query=true;;
         y) year="$OPTARG";;
         d) day="$OPTARG";;
-        p) part="$OPTARG";;
         *) die 'invalid flag\n\n%s' "$USAGE"
     esac
 done
@@ -594,26 +622,17 @@ if [ "$query" = "true" ]; then
         read new
         [ -n "$new" ] && day="$new"
     fi
-
-    if [ -z "$part" ]; then
-        printf "Part [$cached_part]: "
-        read new
-        [ -n "$new" ] && day="$new"
-    fi
 fi
 
 # Get cached selections if not set
 [ -z "$year" ] && year=$cached_year
 [ -z "$day"  ] &&  day=$cached_day
-[ -z "$part" ] && part=$cached_part
 
 # Assert valid selections
 [ "$year" -ge "$START_YEAR" ] 2> /dev/null \
     || die 'invalid year -- "%s"\n' "$year"
 [ "$day" -ge 1 -a "$day" -le 25 ] 2> /dev/null \
     || die 'invalid day -- "%s"\n' "$day"
-[ "$part" = 1 -o "$part" = 2 ] 2> /dev/null \
-    || die 'invalid part -- "%s"\n' "$part"
 
 cmd=$1
 [ -z "$cmd" ] && die 'no command provided.\n\n%s' "$USAGE"

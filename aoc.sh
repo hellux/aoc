@@ -404,6 +404,8 @@ view_cmd() {
 
     object=$1
     [ -z "$object" ] && die 'no object provided\n%s' "$USAGE_VIEW"
+    shift 1
+    [ -n "$*" ] && die 'trailing arguments -- %s' "$@"
 
     object_path="$(printf "$OBJ_FSTR" "$year" "$day" "$object")"
     fetch=false
@@ -641,12 +643,12 @@ shift 1
 
 case "$cmd" in
     select) select_cmd "$@";;
-    auth) auth_cmd "$@";;
+    auth|authenticate) auth_cmd "$@";;
     status) status_cmd "$@";;
-    fetch) fetch_cmd "$@";;
+    fetch|get) fetch_cmd "$@";;
     edit) edit_cmd "$@";;
-    view) view_cmd "$@";;
-    run) run_cmd "$@";;
+    view|show) view_cmd "$@";;
+    run|exec) run_cmd "$@";;
     submit) submit_cmd "$@";;
     clean) clean_cmd "$@";;
     help) help_cmd "$@";;

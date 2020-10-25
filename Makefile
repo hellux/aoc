@@ -1,5 +1,5 @@
 .POSIX:
-.SUFFIXES: .lisp .py .go .hs .rs .awk
+.SUFFIXES: .lisp .py .go .hs .rs .awk .jq
 
 OBJDIR = build
 CFLAGS += -g -Wall -Wextra -Wconversion
@@ -15,6 +15,11 @@ CFLAGS += -g -Wall -Wextra -Wconversion
 
 .py:
 	echo "#!/bin/env python" > $@
+	cat $< >> $@
+	chmod a+x $@
+
+.jq:
+	echo "#!/bin/env -S jq -f" > $@
 	cat $< >> $@
 	chmod a+x $@
 

@@ -461,7 +461,7 @@ edit_cmd() {
         [ -z "$dir_in" ] && die "no name provided."
 
         day_dir="$day_dir_pre$dir_in"
-        mkdir "$day_dir"
+        mkdir -p "$day_dir"
     fi
 
     src="$(echo $day_dir/$name.$extension)"

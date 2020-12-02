@@ -143,6 +143,9 @@ completed_part() {
 select_cmd() {
     for input in "$@"; do
         case "$input" in
+            t|today)
+                year=$(date +"%Y")
+                day=$(date +"%d");;
             n|next)
                 if [ "$day" -eq 25 ];
                 then year=$((year+1)); day=1

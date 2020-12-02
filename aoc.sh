@@ -136,8 +136,12 @@ request() {
 }
 
 completed_part() {
-    [ -r "$CACHE/completed_$year" ] || status_cmd -s days
-    sed -n "${day}p" "$CACHE/completed_$year"
+    if [ -r "$CACHE/user" ]; then
+        [ -r "$CACHE/completed_$year" ] || status_cmd -s days
+        sed -n "${day}p" "$CACHE/completed_$year"
+    else
+        echo 0
+    fi
 }
 
 select_cmd() {

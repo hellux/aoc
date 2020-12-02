@@ -246,10 +246,9 @@ status_cmd() {
             if [ "$sync" = true ] || [ ! -r "$CACHE/completed_$year" ]; then
                 request "$url" > "$RUNTIME/year"
 
-                echo Puzzles $year:
                 awk "$AWK_PARSE_DAYS" "$RUNTIME/year" \
                     | rev | cut -c6- | rev | tr -d '"' \
-                    | sed '1!G;h;$!d' \
+                    | sort -k1 \
                     | sed 's/.*two stars.*/2/;s/.*one star.*/1/;s/Day.*/0/' \
                     > "$CACHE/completed_$year"
             fi

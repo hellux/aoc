@@ -246,10 +246,13 @@ status_cmd() {
             if [ "$sync" = true ] || [ ! -r "$CACHE/completed_$year" ]; then
                 request "$url" > "$RUNTIME/year"
 
+                for _ in $(seq 25); do echo 0; done > "$RUNTIME/zeroes"
                 awk "$AWK_PARSE_DAYS" "$RUNTIME/year" \
                     | rev | cut -c6- | rev | tr -d '"' \
                     | sort -k1 \
                     | sed 's/.*two stars.*/2/;s/.*one star.*/1/;s/Day.*/0/' \
+                    | paste "$RUNTIME/zeroes" - | tr -d '\t' \
+                    | sed 's/02/2/;s/01/1/' \
                     > "$CACHE/completed_$year"
             fi
 

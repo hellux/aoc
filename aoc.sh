@@ -506,21 +506,27 @@ run_cmd() {
 
     [ -d "$day_dir" ] || die "no solution directory at %s" "$day_dir"
 
+    provided_input=false
     if [ -n "$input" ]; then
         input_file="$RUNTIME/input"
         echo "$input" > "$input_file"
     elif [ -z "$input_file" ]; then
         input_file=$(printf "$OBJ_FSTR" "$year" "$day" $OBJ_INPUT)
         [ -r "$input_file" ] || fetch_cmd "input" "$year" "$day"
+        provided_input=true
     fi
 
     [ -r "$input_file" ] || die "can't read input file"
 
-    answer_file=$(printf "$OBJ_FSTR" $year $day "$OBJ_ANS")
-    make -s "$exe" && "./$exe" < "$input_file" > "$answer_file" \
+    make -s "$exe" && "./$exe" < "$input_file" > "$RUNTIME/answer" \
         || die "execution failed"
 
-    cat "$answer_file"
+    if [ "$provided_input" = "true" ] && [ -r "$RUNTIME/answer" ]; then
+        answer_file=$(printf "$OBJ_FSTR" $year $day "$OBJ_ANS")
+        cp "$RUNTIME/answer" "$answer_file"
+    fi
+
+    cat "$RUNTIME/answer"
 }
 
 submit_cmd() {

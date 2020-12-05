@@ -132,7 +132,7 @@ request() {
 
 completed_part() {
     if [ -r "$CACHE/user" ]; then
-        [ -r "$CACHE/completed_$year" ] || status_cmd -s days
+        [ -r "$CACHE/completed_$year" ] || status_cmd -s days > /dev/null
         sed -n "${day}p" "$CACHE/completed_$year"
     else
         echo 0
@@ -394,10 +394,12 @@ fetch_cmd() {
 
     [ "$needs_auth" = "true" -a ! -f "$JAR" ] && die "not signed in"
 
-    output_path="$(printf "$OBJ_FSTR" "$year" "$day" "$object")"
-    mkdir -p "$CACHE/puzzles"
     echo "Fetching $object for day $day, $year..."
-    request "$url" > "$output_path"
+    request "$url" > "$RUNTIME/object"
+
+    mkdir -p "$CACHE/puzzles"
+    output_path="$(printf "$OBJ_FSTR" $year $day "$object")"
+    cp "$RUNTIME/object" "$output_path"
 }
 
 view_cmd() {

@@ -391,10 +391,12 @@ fetch_cmd() {
 
     [ "$needs_auth" = "true" -a ! -f "$JAR" ] && die "not signed in"
 
-    output_path="$(printf "$OBJ_FSTR" $year $day "$object")"
-    mkdir -p "$PUZZLE_DIR"
     echo "Fetching $object for day $day, $year..."
-    request "$url" > "$output_path"
+    request "$url" > "$RUNTIME/object"
+
+    mkdir -p "$PUZZLE_DIR"
+    output_path="$(printf "$OBJ_FSTR" $year $day "$object")"
+    cp "$RUNTIME/object" "$output_path"
 }
 
 view_cmd() {

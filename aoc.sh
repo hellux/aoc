@@ -8,22 +8,17 @@ die() {
     exit 1
 }
 
-if [ -z "$XDG_CACHE_HOME" ];
-then CACHE="$HOME/.cache/aoc"
-else CACHE="$XDG_CACHE_HOME/aoc"
-fi
+APPLICATION=aoc
+CACHE="${XDG_CACHE_HOME:-$HOME/.cache}"
+CACHE="$CACHE/$APPLICATION"
+RUNTIME="${XDG_RUNTIME_DIR:-/tmp}"
+RUNTIME="$RUNTIME/$APPLICATION"
 
-if [ -z "$XDG_RUNTIME_DIR" ];
-then RUNTIME="/tmp/aoc"
-else RUNTIME="$XDG_RUNTIME_DIR/aoc"
-fi
-
-PUZZLE_DIR="$CACHE/puzzles"
 JAR="$CACHE/cookies.jar"
 
 START_YEAR=2015
 START_DAY=1
-START_PART=1
+END_DAY=25
 
 BASE_URL="https://adventofcode.com"
 AUTH_REDDIT_URL="$BASE_URL/auth/reddit"
@@ -37,7 +32,7 @@ EXEC_NAME=solution
 AGENT="user-agent: Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101 Firefox/68.0"
 HTML_DUMP="elinks -no-numbering -no-references -dump -dump-color-mode 1"
 
-OBJ_FSTR="$PUZZLE_DIR/aoc_%d-%02d_%s"
+OBJ_FSTR="$CACHE/puzzles/aoc_%d-%02d_%s"
 DAY_FSTR="%d/day%02d_"
 
 OBJ_ANS=answer
@@ -151,17 +146,18 @@ select_cmd() {
                 year=$(date +"%Y")
                 day=$(date +"%d");;
             n|next)
-                if [ "$day" -eq 25 ];
-                then year=$((year+1)); day=1
+                if [ "$day" -eq "$END_DAY" ];
+                then year=$((year+1)); day="$START_DAY"
                 else day=$((day+1));
                 fi;;
             p|prev)
-                if [ "$day" -eq 1 ];
-                then year=$((year-1)); day=25
+                if [ "$day" -eq "$START_DAY" ];
+                then year=$((year-1)); day="$END_DAY"
                 else day=$((day-1));
                 fi;;
             *)
-                if [ 1 -le "$input" ] && [ "$input" -le 25 ] 2> /dev/null;
+                if [ 1 -le "$input" ] && \
+                   [ "$input" -le "$END_DAY" ]  2> /dev/null;
                 then day="$input"
                 elif [ "$START_YEAR" -le "$input" ] 2> /dev/null;
                 then year="$input"
@@ -175,7 +171,7 @@ select_cmd() {
     echo "$year" > "$CACHE/year"
     echo "$day"  > "$CACHE/day"
 
-    printf "[ %d - day %02d ] set as current selection.\n" $year $day
+    printf "[ %d - day %02d ] set as current selection.\n" "$year" "$day"
 }
 
 status_cmd() {
@@ -210,10 +206,9 @@ status_cmd() {
                 # Get number of completed stars for each event
                 if [ -r "$JAR" ]; then
                     tmp_year=$year
-                    for y in $(cat "$CACHE/events"); do
-                        year=$y
+                    while read -r year; do
                         status_cmd -s days > /dev/null
-                    done
+                    done < "$CACHE/events"
                     year=$tmp_year
                 fi
             fi
@@ -223,19 +218,19 @@ status_cmd() {
             echo "Event completion for [$user]:"
             echo '-----------------------------'
             printf "Year\tGolden\tSilver\tTotal\n"
-            for y in $(cat "$CACHE/events"); do
+            while read -r y; do
                 f="$CACHE/completed_$y"
                 printf "%d" "$y"
                 if [ -r "$f" ]; then
-                    golden=$(grep "2" "$f" | wc -l)
-                    silver=$(grep "1" "$f" | wc -l)
+                    golden=$(grep -c "2" "$f")
+                    silver=$(grep -c "1" "$f")
                     total=$((golden*2 + silver))
-                    printf "\t%d\t%d\t%d" $golden $silver $total
+                    printf "\t%d\t%d\t%d" "$golden" "$silver" "$total"
                 else
                     printf "\t-\t-\t-"
                 fi
                 echo
-            done
+            done < "$CACHE/events"
             ;;
         days)
             [ -r "$CACHE/user" ] || die "not signed in"
@@ -246,10 +241,13 @@ status_cmd() {
             if [ "$sync" = true ] || [ ! -r "$CACHE/completed_$year" ]; then
                 request "$url" > "$RUNTIME/year"
 
+                for _ in $(seq "$END_DAY"); do echo 0; done > "$RUNTIME/zeroes"
                 awk "$AWK_PARSE_DAYS" "$RUNTIME/year" \
                     | rev | cut -c6- | rev | tr -d '"' \
                     | sort -k1 \
                     | sed 's/.*two stars.*/2/;s/.*one star.*/1/;s/Day.*/0/' \
+                    | paste "$RUNTIME/zeroes" - | tr -d '\t' \
+                    | sed 's/02/2/;s/01/1/' \
                     > "$CACHE/completed_$year"
             fi
 
@@ -270,9 +268,9 @@ status_cmd() {
                     puzzle_title=""
                 fi
 
-                src_dir="$(echo $(printf "$DAY_FSTR" $year $d)*)"
-                if [ -r "$src_dir" ];
-                then dirname="($(basename $src_dir | cut -c 7-))"
+                day_dir="$(echo "$(printf "$DAY_FSTR" "$year" "$d")"*)"
+                if [ -r "$day_dir" ];
+                then dirname="($(basename "$day_dir" | cut -c 7-))"
                 else dirname=""
                 fi
 
@@ -283,7 +281,8 @@ status_cmd() {
                 else stars=""
                 fi
 
-                if [ "$d" -eq "$cached_day" ] && [ "$year" -eq "$cached_year" ];
+                if [ "$d" -eq "$cached_day" ] && \
+                   [ "$year" -eq "$cached_year" ];
                 then day_str="[$d]"
                 else day_str=" $d"
                 fi
@@ -329,10 +328,10 @@ auth_cmd() {
 auth_reddit() {
     # Get credentials from user.
     printf "reddit username: "
-    read username
+    read -r username
     stty -echo
     printf "password: "
-    read password
+    read -r password
     stty echo
     printf "\n"
 
@@ -384,9 +383,13 @@ fetch_cmd() {
     url=""
     needs_auth=false
     case "$object" in
-        "$OBJ_INPUT") url="$(printf "$INPUT_URL" $year $day)"; needs_auth=true;;
-        "$OBJ_DESC") url="$(printf "$DESC_URL" $year $day)";;
-        *) die 'invalid object to fetch -- "%s"' "$object";;
+        "$OBJ_INPUT")
+            url="$(printf "$INPUT_URL" "$year" "$day")";
+            needs_auth=true;;
+        "$OBJ_DESC")
+            url="$(printf "$DESC_URL" "$year" "$day")";;
+        *)
+            die 'invalid object to fetch -- "%s"' "$object";;
     esac
 
     [ "$needs_auth" = "true" -a ! -f "$JAR" ] && die "not signed in"
@@ -394,7 +397,7 @@ fetch_cmd() {
     echo "Fetching $object for day $day, $year..."
     request "$url" > "$RUNTIME/object"
 
-    mkdir -p "$PUZZLE_DIR"
+    mkdir -p "$CACHE/puzzles"
     output_path="$(printf "$OBJ_FSTR" $year $day "$object")"
     cp "$RUNTIME/object" "$output_path"
 }
@@ -425,8 +428,8 @@ view_cmd() {
         p1_completed=false
         p2_downloaded=false
 
-        [ $(completed_part) -ge 1 ] && p1_completed=true
-        [ $(grep '<article' "$object_path" | wc -l) -eq 2 ] \
+        [ "$(completed_part)" -ge 1 ] && p1_completed=true
+        [ "$(grep -c '<article' "$object_path")" -eq 2 ] \
             && p2_downloaded=true
         if [ "$p1_completed" = true ] && [ "$p2_downloaded" != true ]
         then fetch=true
@@ -452,7 +455,7 @@ edit_cmd() {
     extension="*"
     name="$EXEC_NAME"
     OPTIND=1
-    while getopts e: flag; do
+    while getopts n:e: flag; do
         case "$flag" in
             n) name="$OPTARG";;
             e) extension="$OPTARG";;
@@ -461,22 +464,22 @@ edit_cmd() {
     done
     shift $((OPTIND-1))
 
-    day_dir="$(echo $(printf "$DAY_FSTR" $year $day)*)"
+    day_dir="$(echo "$(printf "$DAY_FSTR" "$year" "$day")"*)"
     if [ ! -d "$day_dir" ]; then
-        day_dir_pre="$(printf "${DAY_FSTR}%s" $year $day "$dirname")"
-        printf 'Solution directory name: %s' $day_dir_pre
-        read dir_in
+        day_dir_pre="$(printf "${DAY_FSTR}%s" "$year" "$day" "$dirname")"
+        printf 'Solution directory name: %s' "$day_dir_pre"
+        read -r dir_in
         [ -z "$dir_in" ] && die "no name provided."
 
         day_dir="$day_dir_pre$dir_in"
         mkdir -p "$day_dir"
     fi
 
-    src="$(echo $day_dir/$name.$extension)"
+    src="$(echo "$day_dir/$name".$extension)"
 
     if [ ! -r "$src" ]; then
         printf 'Provide file extension: %s.' "$name"
-        read ext_in
+        read -r ext_in
         [ -z "$ext_in" ] && die "no extension provided."
         extension=$ext_in
         src="$day_dir/$name.$extension"
@@ -500,7 +503,7 @@ run_cmd() {
     done
     shift $((OPTIND-1))
 
-    day_dir="$(echo $(printf "$DAY_FSTR" $year $day)*)"
+    day_dir="$(echo "$(printf "$DAY_FSTR" "$year" "$day")"*)"
     exe="$day_dir/$exec_name"
 
     [ -d "$day_dir" ] || die "no solution directory at %s" "$day_dir"
@@ -509,8 +512,8 @@ run_cmd() {
         input_file="$RUNTIME/input"
         echo "$input" > "$input_file"
     elif [ -z "$input_file" ]; then
-        input_file=$(printf "$OBJ_FSTR" $year $day $OBJ_INPUT)
-        [ -r "$input_file" ] || fetch_cmd "input" $year $day
+        input_file=$(printf "$OBJ_FSTR" "$year" "$day" $OBJ_INPUT)
+        [ -r "$input_file" ] || fetch_cmd "input" "$year" "$day"
     fi
 
     [ -r "$input_file" ] || die "can't read input file"
@@ -529,6 +532,7 @@ submit_cmd() {
         0) part=1;;
         1) part=2;;
         2) die "Both parts already completed for day $day $year";;
+        *) die "corrupted cache";;
     esac
 
     ans="$1"
@@ -542,9 +546,11 @@ submit_cmd() {
         fi
     fi
 
+    [ -z "$ans" ] && die "no answer available for part %d" "$part"
+
     printf "Submit answer \"%s\" for part %d of day %d, %d (y/N)? " \
            "$ans" "$part" "$day" "$year"
-    read prompt
+    read -r prompt
     echo
 
     if [ "$prompt" != "${prompt#[Yy]}" ]; then
@@ -554,7 +560,7 @@ submit_cmd() {
         if grep -q "That's the right answer!" "$RUNTIME/submit"; then
             # Update completion in cache
             if [ -r "$CACHE/completed_$year" ]; then
-                sed -i ''$day' s/.*/'$part'/' "$CACHE/completed_$year"
+                sed -i ''"$day"' s/.*/'$part'/' "$CACHE/completed_$year"
             fi
         fi
 
@@ -570,8 +576,7 @@ submit_cmd() {
 clean_cmd() {
     make -s clean
     rm -rf "$CACHE"
-    [ -z "$EXEC_NAME" ] && die
-    find . -type f -name "$EXEC_NAME" | xargs rm -f
+    find . -type f -name "${EXEC_NAME:?}" -print0 | xargs -0 rm
 }
 
 help_cmd() {
@@ -622,14 +627,14 @@ shift $((OPTIND-1))
 
 if [ "$query" = "true" ]; then
     if [ -z "$year" ]; then
-        printf "Year [$cached_year]: "
-        read new
+        printf "Year [%d]: " "$cached_year"
+        read -r new
         [ -n "$new" ] && year="$new"
     fi
 
     if [ -z "$day" ]; then
-        printf "Day [$cached_day]: "
-        read new
+        printf "Day [%02d]: " "$cached_day"
+        read -r new
         [ -n "$new" ] && day="$new"
     fi
 fi
@@ -641,7 +646,7 @@ fi
 # Assert valid selections
 [ "$year" -ge "$START_YEAR" ] 2> /dev/null \
     || die 'invalid year -- "%s"\n' "$year"
-[ "$day" -ge 1 -a "$day" -le 25 ] 2> /dev/null \
+[ "$day" -ge "$START_DAY" -a "$day" -le "$END_DAY" ] 2> /dev/null \
     || die 'invalid day -- "%s"\n' "$day"
 
 cmd=$1

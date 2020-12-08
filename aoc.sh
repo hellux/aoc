@@ -144,7 +144,7 @@ select_cmd() {
         case "$input" in
             t|today)
                 year=$(date +"%Y")
-                day=$(date +"%d");;
+                day=$(date +"%e");;
             n|next)
                 if [ "$day" -eq "$END_DAY" ];
                 then year=$((year+1)); day="$START_DAY"

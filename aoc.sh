@@ -133,7 +133,7 @@ request() {
 completed_part() {
     if [ -r "$CACHE/user" ]; then
         [ -r "$CACHE/completed_$year" ] || status_cmd -s days > /dev/null
-        sed -n "${day}p" "$CACHE/completed_$year"
+        printf "%d" "$(sed -n "${day}p" "$CACHE/completed_$year")"
     else
         echo 0
     fi

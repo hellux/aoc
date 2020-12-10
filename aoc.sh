@@ -246,7 +246,7 @@ status_cmd() {
                 for _ in $(seq "$END_DAY"); do echo 0; done > "$RUNTIME/zeroes"
                 awk "$AWK_PARSE_DAYS" "$RUNTIME/year" \
                     | rev | cut -c6- | rev | tr -d '"' \
-                    | sort -k1 \
+                    | sort -nk2 \
                     | sed 's/.*two stars.*/2/;s/.*one star.*/1/;s/Day.*/0/' \
                     | paste "$RUNTIME/zeroes" - | tr -d '\t' \
                     | sed 's/02/2/;s/01/1/' \

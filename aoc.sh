@@ -38,6 +38,7 @@ DAY_FSTR="%d/day%02d_"
 OBJ_ANS=answer
 OBJ_INPUT=input
 OBJ_DESC=desc
+OBJ_EX=ex
 
 AWK_PARSE_USER='BEGIN { RS="<"; FS=">" }
 $1 == "div class=\"user\"" { printf "%s\n", $2 }'
@@ -94,12 +95,12 @@ OBJECTS="objects:
 USAGE_FETCH="usage: aoc.sh fetch <object>
 
 $OBJECTS"
-USAGE_VIEW="usage: aoc.sh view [-c <cmd>] <object>
+USAGE_VIEW="usage: aoc.sh view [-c <cmd>] desc
+       aoc.sh view [-c <cmd>] input
+       aoc.sh view [-c <cmd>] ex [<num>]
 
 flags:
-    -c      -- provide command to view object with
-
-$OBJECTS"
+    -c      -- provide command to view object with"
 
 USAGE_EDIT="usage: aoc.sh edit [-e <exec_name>]
 
@@ -110,7 +111,8 @@ USAGE_RUN="usage: aoc.sh run [<flag>...]
 flags:
     -i <input>      -- set puzzle input
     -I <input_file> -- set puzzle input file
-    -e <exec_name>  -- set executable name"
+    -e <example>    -- set puzzle input to example from puzzle description
+    -n <exec_name>  -- set executable name"
 USAGE_SUBMIT="usage: aoc.sh submit [<answer>]"
 
 USAGE_CLEAN="usage: aoc.sh clean"
@@ -413,17 +415,30 @@ view_cmd() {
     done
     shift $((OPTIND-1))
 
-    object=$1
-    [ -z "$object" ] && die 'no object provided\n%s' "$USAGE_VIEW"
+    view_object=$1
+    [ -z "$view_object" ] && die 'no object provided\n%s' "$USAGE_VIEW"
     shift 1
+    if [ "$view_object" = "$OBJ_EX" ]; then
+        fetch_object="$OBJ_DESC"
+        exnum="$1"
+        if [ -z "$exnum" ];
+        then exnum=1
+        else shift 1
+        fi
+
+        [ "$exnum" -gt 0 ] 2> /dev/null ||
+            die 'argument must be a number larger than zero\n%s' "$USAGE_VIEW"
+    else
+        fetch_object="$view_object"
+    fi
     [ -n "$*" ] && die 'trailing arguments -- %s' "$@"
 
-    object_path="$(printf "$OBJ_FSTR" "$year" "$day" "$object")"
+    object_path="$(printf "$OBJ_FSTR" "$year" "$day" "$fetch_object")"
     fetch=false
     if [ ! -r "$object_path" ]; then
         # Fetch if non-existent
         fetch=true
-    elif [ "$object" = "$OBJ_DESC" ]; then
+    elif [ "$fetch_object" = "$OBJ_DESC" ]; then
         # Fetch if second part available
         p1_completed=false
         p2_downloaded=false
@@ -436,14 +451,32 @@ view_cmd() {
         fi
     fi
 
-    [ "$fetch" = "true" ] && fetch_cmd "$object"
+    [ "$fetch" = "true" ] && fetch_cmd "$fetch_object"
 
-    case "$object" in
+    case "$view_object" in
         "$OBJ_DESC")
             beg=$(awk '/<article/ {print FNR; exit}' "$object_path")
             end=$(awk '/<\/article>/ {print FNR}' "$object_path" | tail -n1)
             tail -n +"$beg" "$object_path" | head -n $((end-beg+1)) \
                 | $HTML_DUMP > "$RUNTIME/view"
+            ;;
+        "$OBJ_EX")
+            nex=$(grep -c "<pre><code>" "$object_path")
+            if [ "$exnum" -gt "$nex" ]; then
+                die "example %d not found, %d example(s) were found" \
+                    "$exnum" "$nex"
+            fi
+
+            beg=$(grep -n "<pre><code>" "$object_path" \
+                | cut -f1 -d: \
+                | sed -n "${exnum}p")
+            end=$(grep -n "</code></pre>" "$object_path" \
+                | cut -f1 -d: \
+                | sed -n "${exnum}p")
+            sed -n "${beg},${end}p" "$object_path" \
+                | sed 's/<pre><code>//g;s,</code></pre>,,g' \
+                | head -n -1 \
+                > "$RUNTIME/view"
             ;;
         *) cp "$object_path" "$RUNTIME/view";;
     esac
@@ -493,10 +526,11 @@ run_cmd() {
     input_file=""
     exec_name="$EXEC_NAME"
     OPTIND=1
-    while getopts i:I:n: flag; do
+    while getopts i:I:e:n: flag; do
         case "$flag" in
             i) input=$OPTARG;;
             I) input_file=$OPTARG;;
+            e) exnum=$OPTARG;;
             n) exec_name=$OPTARG;;
             *) die 'invalid flag\n\n%s' "$USAGE_RUN"
         esac
@@ -507,6 +541,11 @@ run_cmd() {
     exe="$day_dir/$exec_name"
 
     [ -d "$day_dir" ] || die "no solution directory at %s" "$day_dir"
+
+    if [ -n "$exnum" ]; then
+        view_cmd -ccat ex "$exnum" > "$RUNTIME/example"
+        input_file="$RUNTIME/example"
+    fi
 
     provided_input=false
     if [ -n "$input" ]; then

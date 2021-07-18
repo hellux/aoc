@@ -526,13 +526,15 @@ run_cmd() {
     input=""
     input_file=""
     exec_name="$EXEC_NAME"
+    direct_output="false"
     OPTIND=1
-    while getopts i:I:e:n: flag; do
+    while getopts i:I:e:n:d flag; do
         case "$flag" in
             i) input=$OPTARG;;
             I) input_file=$OPTARG;;
             e) exnum=$OPTARG;;
             n) exec_name=$OPTARG;;
+            d) direct_output=true;;
             *) die 'invalid flag\n\n%s' "$USAGE_RUN"
         esac
     done
@@ -560,15 +562,19 @@ run_cmd() {
 
     [ -r "$input_file" ] || die "can't read input file"
 
-    make -s "$exe" && "./$exe" < "$input_file" > "$RUNTIME/answer" \
-        || die "execution failed"
+    if [ "$direct_output" = "true" ]; then
+        make -s "$exe" && "./$exe" < "$input_file" || die "execution failed"
+    else
+        make -s "$exe" && "./$exe" < "$input_file" > "$RUNTIME/answer" \
+            || die "execution failed"
 
-    if [ "$provided_input" = "true" ] && [ -r "$RUNTIME/answer" ]; then
-        answer_file=$(printf "$OBJ_FSTR" $year $day "$OBJ_ANS")
-        cp "$RUNTIME/answer" "$answer_file"
+        if [ "$provided_input" = "true" ] && [ -r "$RUNTIME/answer" ]; then
+            answer_file=$(printf "$OBJ_FSTR" $year $day "$OBJ_ANS")
+            cp "$RUNTIME/answer" "$answer_file"
+        fi
+
+        cat "$RUNTIME/answer"
     fi
-
-    cat "$RUNTIME/answer"
 }
 
 submit_cmd() {

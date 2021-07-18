@@ -34,3 +34,4 @@ CFLAGS += -g -Wall -Wextra -Wconversion
 
 clean:
 	rm -rf ${OBJDIR}
+	find 20* -mindepth 2 -type f -name solution -print0 | xargs -0 rm

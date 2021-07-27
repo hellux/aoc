@@ -1,5 +1,5 @@
 .POSIX:
-.SUFFIXES: .lisp .py .go .hs .rs .awk .jq .nim
+.SUFFIXES: .lisp .py .go .hs .rs .awk .jq .nim .zig
 
 OBJDIR = build
 CFLAGS += -g -Wall -Wextra -Wconversion
@@ -35,6 +35,9 @@ CFLAGS += -g -Wall -Wextra -Wconversion
 .nim:
 	nim compile $<
 
+.zig:
+	zig build-exe $< && mv solution $@
+
 clean:
 	rm -rf ${OBJDIR}
-	find 20* -mindepth 2 -type f -name solution -print0 | xargs -0 rm
+	find 20* -maxdepth 2 -mindepth 2 -type f -name solution | xargs rm -f

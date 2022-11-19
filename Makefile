@@ -30,7 +30,7 @@ CFLAGS += -g -Wall -Wextra -Wconversion
 	go build -o $@ $<
 
 .rs:
-	rustc --edition 2018 -o $@ $<
+	rustc -o $@ $<
 
 clean:
 	rm -rf ${OBJDIR}

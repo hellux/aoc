@@ -1,5 +1,5 @@
 .POSIX:
-.SUFFIXES: .lisp .py .go .hs .rs .awk .jq
+.SUFFIXES: .lisp .py .go .hs .rs .awk .jq .nim
 
 OBJDIR = build
 CFLAGS += -g -Wall -Wextra -Wconversion
@@ -31,6 +31,9 @@ CFLAGS += -g -Wall -Wextra -Wconversion
 
 .rs:
 	rustc -o $@ $<
+
+.nim:
+	nim compile $<
 
 clean:
 	rm -rf ${OBJDIR}

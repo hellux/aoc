@@ -27,6 +27,7 @@ DESC_URL="$BASE_URL/%d/day/%d"
 ANSWER_URL="$BASE_URL/%d/day/%d/answer"
 EVENTS_URL="$BASE_URL/$START_YEAR/events"
 YEAR_URL="$BASE_URL/%d"
+STATS_URL="$BASE_URL/%d/leaderboard/self"
 
 EXEC_NAME=solution
 AGENT="user-agent: Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101 Firefox/68.0"
@@ -293,6 +294,24 @@ status_cmd() {
 
                 d=$((d+1))
             done < "$CACHE/completed_$year"
+            ;;
+        stats)
+            [ -r "$CACHE/user" ] || die "not signed in"
+
+            user=$(cat "$CACHE/user")
+            url="$(printf "$STATS_URL" "$year")"
+
+            if [ "$sync" = true ] || [ ! -r "$CACHE/stats_$year" ]; then
+                request "$url" > "$RUNTIME/stats"
+
+                beg=$(awk '/<pre>/ {print NR; exit}' "$RUNTIME/stats")
+                end=$(awk '/<\/pre>/ {print NR}' "$RUNTIME/stats" | tail -n1)
+                tail -n +"$beg" "$RUNTIME/stats" | head -n $((end-beg+1)) \
+                    | sed 's/^.*<pre>/<pre>/' \
+                    > "$CACHE/stats_$year"
+            fi
+
+            $HTML_DUMP "$CACHE/stats_$year" | cat
             ;;
         login)
             if [ -r "$JAR" ]; then

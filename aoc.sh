@@ -405,7 +405,7 @@ fetch_cmd() {
 }
 
 view_cmd() {
-    viewer="less -r"
+    viewer="less -rf"
     OPTIND=1
     while getopts c: flag; do
         case "$flag" in

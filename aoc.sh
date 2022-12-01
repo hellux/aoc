@@ -456,7 +456,7 @@ view_cmd() {
     case "$view_object" in
         "$OBJ_DESC")
             beg=$(awk '/<article/ {print FNR; exit}' "$object_path")
-            end=$(awk '/<\/article>/ {print FNR}' "$object_path" | tail -n1)
+            end=$(awk '/>get your puzzle input</ {print FNR}' "$object_path" | tail -n1)
             tail -n +"$beg" "$object_path" | head -n $((end-beg+1)) \
                 | $HTML_DUMP > "$RUNTIME/view"
             ;;

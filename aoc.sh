@@ -495,7 +495,6 @@ view_cmd() {
             sed -n "${beg},${end}p" "$object_path" \
                 | sed 's/<pre><code>//g;s,</code></pre>,,g' \
                 | sed 's/<em>//g;s,</em>,,g' \
-                | head -n -1 \
                 > "$RUNTIME/view"
             ;;
         *) cp "$object_path" "$RUNTIME/view";;

@@ -8,11 +8,9 @@ die() {
     exit 1
 }
 
-APPLICATION=aoc
 CACHE="${XDG_CACHE_HOME:-$HOME/.cache}"
-CACHE="$CACHE/$APPLICATION"
-RUNTIME="${XDG_RUNTIME_DIR:-/tmp}"
-RUNTIME="$RUNTIME/$APPLICATION"
+CACHE="$CACHE/aoc"
+RUNTIME="$(mktemp -d)"
 
 JAR="$CACHE/cookies.jar"
 

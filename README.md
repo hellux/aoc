@@ -68,7 +68,7 @@ Create and edit a solution (with `EDITOR` env).
 
     $ aoc edit
     Solution directory name: 2015/day07_logic-circuit
-    Provide file extension: solution.hs
+    Solution file name: solution.hs
 
 Run solution, output should show part 1 answer on first line and optionally
 part 2 answer on second line. Source file is compiled with provided Makefile

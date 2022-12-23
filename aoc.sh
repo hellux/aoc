@@ -529,7 +529,7 @@ edit_cmd() {
     src="$(echo "$day_dir/$name".$extension)"
 
     if [ ! -r "$src" ]; then
-        printf 'Provide file extension: %s.' "$name"
+        printf 'Solution file name: %s.' "$name"
         read -r ext_in
         [ -z "$ext_in" ] && die "no extension provided."
         extension=$ext_in

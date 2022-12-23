@@ -860,7 +860,7 @@ cmd=$1
 shift 1
 
 cache="${XDG_cache_HOME:-$HOME/.cache}"
-cache="$cache/aoc"
+cache="./.aoc"
 
 [ "$cmd" = "init" ] && init_cmd "$@"
 

@@ -121,7 +121,7 @@ request() {
     shift 1
     args="$*"
 
-    code=$(curl -s -b "$JAR" -o "$RUNTIME/request" -w '%{http_code}' \
+    code=$(curl -L -s -b "$JAR" -o "$RUNTIME/request" -w '%{http_code}' \
            $args "$url")
 
     if [ "$code" != "200" ]; then

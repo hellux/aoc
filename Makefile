@@ -30,7 +30,7 @@ CFLAGS += -g -Wall -Wextra -Wconversion
 	go build -o $@ $<
 
 .rs:
-	rustc -o $@ $<
+	rustc -C debug-assertions=y -O -o $@ $<
 
 .nim:
 	nim compile $<

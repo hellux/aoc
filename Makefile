@@ -3,6 +3,7 @@
 
 OBJDIR = build
 CFLAGS += -g -Wall -Wextra -Wconversion
+ASFLAGS += -no-pie -znoexecstack
 
 .lisp:
 	sbcl --load $< \

@@ -699,9 +699,11 @@ Show info about commands.
 $c_commands"
 
 help_cmd() {
-    topic=$1
-    if [ -n "$topic" ]; then
-        shift
+    if [ -z "$*" ]; then
+        echo "$aoc -- Advent of Code helper script"
+        printf '\n%s\n' "$c_usage"
+    fi
+    for topic in "$@"; do
         case "$topic" in
             select) echo "$c_usage_select";;
             auth) echo "$c_usage_auth";;
@@ -715,11 +717,8 @@ help_cmd() {
             help) echo "$c_usage_help";;
             *) die "invalid topic -- $topic" "$c_usage_help";
         esac
-    else
-        echo "$aoc -- Advent of Code helper script"
-        printf '\n%s\n' "$c_usage"
-    fi
-    [ -n "$1" ] && warn 'excess arguments -- %s' "$*"
+        echo
+    done
 }
 
 [ -d "$tmp" ] || mkdir -p "$tmp"

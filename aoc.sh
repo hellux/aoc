@@ -118,14 +118,9 @@ select_cmd() {
                 then year=$((year-1)); day="$c_end_day"
                 else day=$((day-1));
                 fi;;
-            *)
-                if [ 1 -le "$input" ] && \
-                   [ "$input" -le "$c_end_day" ]  2> /dev/null;
-                then day="$input"
-                elif [ "$c_start_year" -le "$input" ] 2> /dev/null;
-                then year="$input"
-                else die "invalid selection -- $input" "$c_usage_select"
-                fi;;
+            [1-9]|1[0-9]|2[0-5]) day="$input";;
+            20[0-9][0-9]) year="$input";;
+            *) die "invalid selection -- $input" "$c_usage_select"
         esac
     done
 

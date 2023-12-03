@@ -41,6 +41,7 @@ c_commands="commands:
     submit  -- submit answer for puzzle
     clean   -- delete all build files, fetched items, cookies
     help    -- get help about command"
+
 c_usage="usage: aoc.sh [<arg>..] <command> [<arg>..]
 
 flags:
@@ -49,58 +50,10 @@ flags:
     -q      -- query selection
 
 $c_commands"
-c_usage_help="usage: aoc.sh help <command>
-
-$c_commands"
-
-c_usage_auth="usage: aoc.sh auth <service>
-
-services:
-    reddit"
-
-c_usage_select="usage: aoc.sh [<arg>..] select [<year>|<day>|<command>..]
-
-commands:
-    [n]ext  -- select next puzzle
-    [p]rev  -- select previous puzzle"
-
-c_usage_status="usage: aoc.sh status [-s] <command>
-
-flags:
-    -s      -- synchronize, update cache
-
-commands:
-    events  -- events with current completion
-    days    -- days with current completion
-    login   -- current login status"
 
 c_objects="objects:
     desc    -- puzzle description
     input   -- puzzle input"
-c_usage_fetch="usage: aoc.sh fetch <object>
-
-$c_objects"
-c_usage_view="usage: aoc.sh view [-c <cmd>] desc
-       aoc.sh view [-c <cmd>] input
-       aoc.sh view [-c <cmd>] ex [<num>]
-
-flags:
-    -c      -- provide command to view object with"
-
-c_usage_edit="usage: aoc.sh edit [-e <exec_name>]
-
-flags:
-    -e <exec_name>  -- set executable name"
-c_usage_run="usage: aoc.sh run [<flag>...]
-
-flags:
-    -i <input>      -- set puzzle input
-    -I <input_file> -- set puzzle input file
-    -e <example>    -- set puzzle input to example from puzzle description
-    -n <exec_name>  -- set executable name"
-c_usage_submit="usage: aoc.sh submit [<answer>]"
-
-c_usage_clean="usage: aoc.sh clean"
 
 request() {
     url="$1"
@@ -125,6 +78,13 @@ completed_part() {
         echo 0
     fi
 }
+
+c_usage_select="usage: aoc.sh [<arg>..] select [<year>|<day>|<command>..]
+
+commands:
+    [t]oday -- select today's puzzle
+    [n]ext  -- select next puzzle
+    [p]rev  -- select previous puzzle"
 
 select_cmd() {
     for input in "$@"; do
@@ -160,6 +120,17 @@ select_cmd() {
 
     printf "[ %d - day %02d ] set as current selection.\n" "$year" "$day"
 }
+
+c_usage_status="usage: aoc.sh status [-s] <command>
+
+flags:
+    -s      -- synchronize, update cache
+
+commands:
+    events  -- events with current completion
+    days    -- days with current completion
+    stats   -- personal leaderboard times
+    login   -- current login status"
 
 status_cmd() {
     sync=false
@@ -320,7 +291,13 @@ status_cmd() {
     esac
 }
 
+c_usage_auth="usage: aoc.sh auth <service>
+
+services:
+    reddit"
+
 auth_cmd() {
+
     service="$1"
 
     [ -z "$service" ] && die "no service provided.\n\n%s" "$c_usage_auth"
@@ -383,6 +360,10 @@ auth_reddit() {
     status_cmd -s login
 }
 
+c_usage_fetch="usage: aoc.sh fetch <object>
+
+$c_objects"
+
 fetch_cmd() {
     object=$1
     [ -z "$object" ] && die 'no object provided\n%s' "$c_usage_fetch"
@@ -408,6 +389,13 @@ fetch_cmd() {
     output_path="$(printf "$c_fstr_obj" $year $day "$object")"
     cp "$tmp/object" "$output_path"
 }
+
+c_usage_view="usage: aoc.sh view [-c <cmd>] desc
+       aoc.sh view [-c <cmd>] input
+       aoc.sh view [-c <cmd>] ex [<num>]
+
+flags:
+    -c      -- provide command to view object with"
 
 view_cmd() {
     viewer="less -rf"
@@ -490,6 +478,11 @@ view_cmd() {
     $viewer "$tmp/view"
 }
 
+c_usage_edit="usage: aoc.sh edit [-e <exec_name>]
+
+flags:
+    -e <exec_name>  -- set executable name"
+
 edit_cmd() {
     extension="*"
     name="$c_exec_name"
@@ -526,6 +519,15 @@ edit_cmd() {
 
     $EDITOR "$src"
 }
+
+c_usage_run="usage: aoc.sh run [<flag>...]
+
+flags:
+    -i <input>      -- set puzzle input
+    -I <input_file> -- set puzzle input file
+    -e <example>    -- set puzzle input to example from puzzle description
+    -d              -- do not capture stdout
+    -n <exec_name>  -- set executable name"
 
 run_cmd() {
     input=""
@@ -582,6 +584,8 @@ run_cmd() {
     fi
 }
 
+c_usage_submit="usage: aoc.sh submit [<answer>]"
+
 submit_cmd() {
     [ -f "$cache/jar" ] || die "not signed in"
 
@@ -630,11 +634,17 @@ submit_cmd() {
     fi
 }
 
+c_usage_clean="usage: aoc.sh clean"
+
 clean_cmd() {
     make -s clean
     rm -rf "$cache"
     find . -type f -name "${c_exec_name:?}" -print0 | xargs -0 rm
 }
+
+c_usage_help="usage: aoc.sh help <command>
+
+$c_commands"
 
 help_cmd() {
     topic=$1

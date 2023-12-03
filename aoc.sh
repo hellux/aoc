@@ -141,6 +141,7 @@ commands:
     events          events with current completion
     days            days with current completion
     stats           personal leaderboard times
+    leaderboard     show private leaderboards
     login           current login status
 eof
 )
@@ -281,6 +282,50 @@ status_cmd() {
             fi
 
             $c_html_dump "$cache/stats_$year" | cat
+            ;;
+        leaderboard)
+            [ -r "$cache/user" ] || die "not signed in"
+
+            if [ "$sync" = "true" ] || [ ! -d "$cache/lb_priv/$year" ]; then
+                request "$c_url_base/$year/leaderboard/private" \
+                    | grep -Eo "leaderboard/private/view/[0-9]+" \
+                    | while read -r lb; do
+                        mkdir -p "$cache/lb_priv/$year"
+                        request "$c_url_base/$year/$lb.json" > "$cache/lb_priv/$year/${lb##*/}"
+                    done
+            fi
+
+            for lb in "$cache"/lb_priv/"$year"/*; do
+                echo "                  1111111111222222"
+                echo "         1234567890123456789012345"
+                < "$lb" jq -r '.members
+                    | [to_entries[].value]
+                    | sort_by(.local_score)
+                    | reverse[]
+                    | [
+                        .name,
+                        .local_score,
+                        if .last_star_ts > 0
+                            then (.last_star_ts | localtime | strftime("%F %R:%S"))
+                            else "-"
+                        end,
+                        (.completion_day_level as $comp
+                            | range(1;26)
+                            | $comp.[(tostring | tostring)]
+                            | length)
+                    ] | @tsv' | while IFS=$(printf "\t") read -r name score ts days; do
+                    printf "%8s " "$score"
+                    for d in $days; do
+                        case $d in
+                            0) printf " ";;
+                            1) printf ".";;
+                            2) printf "*";;
+                        esac
+                    done
+                    printf " %-19s %s\n" "$ts" "$name"
+                done
+                echo
+            done
             ;;
         login)
             if [ -r "$cache/jar" ]; then

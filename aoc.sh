@@ -4,47 +4,35 @@ die() {
     str=$1
     shift
     printf 'error: '"$str"'\n' "$@" 1>&2
-    rm -rf "$RUNTIME"
+    rm -rf "$tmp"
     exit 1
 }
 
-CACHE="${XDG_CACHE_HOME:-$HOME/.cache}"
-CACHE="$CACHE/aoc"
-RUNTIME="$(mktemp -d)"
+cache="${XDG_cache_HOME:-$HOME/.cache}"
+cache="$cache/aoc"
+tmp="$(mktemp -d)"
 
-JAR="$CACHE/cookies.jar"
+cache_jar="$cache/cookies.jar"
 
-START_YEAR=2015
-START_DAY=1
-END_DAY=25
+c_start_year=2015
+c_start_day=1
+c_end_day=25
 
-BASE_URL="https://adventofcode.com"
-AUTH_REDDIT_URL="$BASE_URL/auth/reddit"
-INPUT_URL="$BASE_URL/%d/day/%d/input"
-DESC_URL="$BASE_URL/%d/day/%d"
-ANSWER_URL="$BASE_URL/%d/day/%d/answer"
-EVENTS_URL="$BASE_URL/$START_YEAR/events"
-YEAR_URL="$BASE_URL/%d"
-STATS_URL="$BASE_URL/%d/leaderboard/self"
+c_url_base="https://adventofcode.com"
 
-EXEC_NAME=solution
-AGENT="user-agent: Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101 Firefox/68.0"
-HTML_DUMP="elinks -no-numbering -no-references -dump -dump-color-mode 1"
+c_exec_name=solution
+c_user_agent="user-agent: Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101 Firefox/68.0"
+c_html_dump="elinks -no-numbering -no-references -dump -dump-color-mode 1"
 
-OBJ_FSTR="$CACHE/puzzles/aoc_%d-%02d_%s"
-DAY_FSTR="%d/day%02d_"
+c_fstr_obj="$cache/puzzles/aoc_%d-%02d_%s"
+c_fstr_day="%d/day%02d_"
 
-OBJ_ANS=answer
-OBJ_INPUT=input
-OBJ_DESC=desc
-OBJ_EX=ex
+c_obj_ans=answer
+c_obj_input=input
+c_obj_desc=desc
+c_obj_ex=ex
 
-AWK_PARSE_USER='BEGIN { RS="<"; FS=">" }
-$1 == "div class=\"user\"" { printf "%s\n", $2 }'
-AWK_PARSE_DAYS='BEGIN { RS="<"; FS="=" }
-$1 == "a aria-label" { printf "%s\n", $2 }'
-
-COMMANDS="commands:
+c_commands="commands:
     select  -- save current selection of year and day
     status  -- show selection, login and completion status
     auth    -- authenticate user and create session cookie
@@ -55,30 +43,30 @@ COMMANDS="commands:
     submit  -- submit answer for puzzle
     clean   -- delete all build files, fetched items, cookies
     help    -- get help about command"
-USAGE="usage: aoc.sh [<arg>..] <command> [<arg>..]
+c_usage="usage: aoc.sh [<arg>..] <command> [<arg>..]
 
 flags:
     -y      -- select year
     -d      -- select day
     -q      -- query selection
 
-$COMMANDS"
-USAGE_HELP="usage: aoc.sh help <command>
+$c_commands"
+c_usage_help="usage: aoc.sh help <command>
 
-$COMMANDS"
+$c_commands"
 
-USAGE_AUTH="usage: aoc.sh auth <service>
+c_usage_auth="usage: aoc.sh auth <service>
 
 services:
     reddit"
 
-USAGE_SELECT="usage: aoc.sh [<arg>..] select [<year>|<day>|<command>..]
+c_usage_select="usage: aoc.sh [<arg>..] select [<year>|<day>|<command>..]
 
 commands:
     [n]ext  -- select next puzzle
     [p]rev  -- select previous puzzle"
 
-USAGE_STATUS="usage: aoc.sh status [-s] <command>
+c_usage_status="usage: aoc.sh status [-s] <command>
 
 flags:
     -s      -- synchronize, update cache
@@ -88,53 +76,53 @@ commands:
     days    -- days with current completion
     login   -- current login status"
 
-OBJECTS="objects:
+c_objects="objects:
     desc    -- puzzle description
     input   -- puzzle input"
-USAGE_FETCH="usage: aoc.sh fetch <object>
+c_usage_fetch="usage: aoc.sh fetch <object>
 
-$OBJECTS"
-USAGE_VIEW="usage: aoc.sh view [-c <cmd>] desc
+$c_objects"
+c_usage_view="usage: aoc.sh view [-c <cmd>] desc
        aoc.sh view [-c <cmd>] input
        aoc.sh view [-c <cmd>] ex [<num>]
 
 flags:
     -c      -- provide command to view object with"
 
-USAGE_EDIT="usage: aoc.sh edit [-e <exec_name>]
+c_usage_edit="usage: aoc.sh edit [-e <exec_name>]
 
 flags:
     -e <exec_name>  -- set executable name"
-USAGE_RUN="usage: aoc.sh run [<flag>...]
+c_usage_run="usage: aoc.sh run [<flag>...]
 
 flags:
     -i <input>      -- set puzzle input
     -I <input_file> -- set puzzle input file
     -e <example>    -- set puzzle input to example from puzzle description
     -n <exec_name>  -- set executable name"
-USAGE_SUBMIT="usage: aoc.sh submit [<answer>]"
+c_usage_submit="usage: aoc.sh submit [<answer>]"
 
-USAGE_CLEAN="usage: aoc.sh clean"
+c_usage_clean="usage: aoc.sh clean"
 
 request() {
     url="$1"
     shift 1
     args="$*"
 
-    code=$(curl -L -s -b "$JAR" -o "$RUNTIME/request" -w '%{http_code}' \
+    code=$(curl -L -s -b "$cache_jar" -o "$tmp/request" -w '%{http_code}' \
            $args "$url")
 
     if [ "$code" != "200" ]; then
         die "HTTP request to '%s' failed. -- code %s" "$url" "$code"
     fi
 
-    cat "$RUNTIME/request"
+    cat "$tmp/request"
 }
 
 completed_part() {
-    if [ -r "$CACHE/user" ]; then
-        [ -r "$CACHE/completed_$year" ] || status_cmd -s days > /dev/null
-        printf "%d" "$(sed -n "${day}p" "$CACHE/completed_$year")"
+    if [ -r "$cache/user" ]; then
+        [ -r "$cache/completed_$year" ] || status_cmd -s days > /dev/null
+        printf "%d" "$(sed -n "${day}p" "$cache/completed_$year")"
     else
         echo 0
     fi
@@ -147,30 +135,30 @@ select_cmd() {
                 year=$(date +"%Y")
                 day=$(date +"%e");;
             n|next)
-                if [ "$day" -eq "$END_DAY" ];
-                then year=$((year+1)); day="$START_DAY"
+                if [ "$day" -eq "$c_end_day" ];
+                then year=$((year+1)); day="$c_start_day"
                 else day=$((day+1));
                 fi;;
             p|prev)
-                if [ "$day" -eq "$START_DAY" ];
-                then year=$((year-1)); day="$END_DAY"
+                if [ "$day" -eq "$c_start_day" ];
+                then year=$((year-1)); day="$c_end_day"
                 else day=$((day-1));
                 fi;;
             *)
                 if [ 1 -le "$input" ] && \
-                   [ "$input" -le "$END_DAY" ]  2> /dev/null;
+                   [ "$input" -le "$c_end_day" ]  2> /dev/null;
                 then day="$input"
-                elif [ "$START_YEAR" -le "$input" ] 2> /dev/null;
+                elif [ "$c_start_year" -le "$input" ] 2> /dev/null;
                 then year="$input"
                 else die 'invalid input -- "%s"\n\n%s'
-                         "$input" "$USAGE_SELECT"
+                         "$input" "$c_usage_select"
                 fi;;
         esac
     done
 
     # Update selections cache
-    echo "$year" > "$CACHE/year"
-    echo "$day"  > "$CACHE/day"
+    echo "$year" > "$cache/year"
+    echo "$day"  > "$cache/day"
 
     printf "[ %d - day %02d ] set as current selection.\n" "$year" "$day"
 }
@@ -181,7 +169,7 @@ status_cmd() {
     while getopts s flag; do
         case "$flag" in
             s) sync=true;;
-            *) die 'invalid flag\n\n%s' "$USAGE_STATUS"
+            *) die 'invalid flag\n\n%s' "$c_usage_status"
         esac
     done
     shift $((OPTIND-1))
@@ -194,33 +182,33 @@ status_cmd() {
 
     case "$cmd" in
         events)
-            [ -r "$CACHE/user" ] || die "not signed in"
+            [ -r "$cache/user" ] || die "not signed in"
 
-            if [ "$sync" = true ] || [ ! -r "$CACHE/events" ]; then
+            if [ "$sync" = true ] || [ ! -r "$cache/events" ]; then
                 # Get available events
-                request "$EVENTS_URL" > "$RUNTIME/events"
-                grep -oE '\[[0-9]{4}\]' "$RUNTIME/events" \
+                request "$c_url_base/$c_start_year/events" > "$tmp/events"
+                grep -oE '\[[0-9]{4}\]' "$tmp/events" \
                     | sed 's/\[//;s/\]//' \
                     | sed '1!G;h;$!d' \
-                    > "$CACHE/events"
+                    > "$cache/events"
 
                 # Get number of completed stars for each event
-                if [ -r "$JAR" ]; then
+                if [ -r "$cache_jar" ]; then
                     tmp_year=$year
                     while read -r year; do
                         status_cmd -s days > /dev/null
-                    done < "$CACHE/events"
+                    done < "$cache/events"
                     year=$tmp_year
                 fi
             fi
 
-            user=$(cat "$CACHE/user")
+            user=$(cat "$cache/user")
 
             echo "Event completion for [$user]:"
             echo '-----------------------------'
             printf "Year\tGolden\tSilver\tTotal\n"
             while read -r y; do
-                f="$CACHE/completed_$y"
+                f="$cache/completed_$y"
                 printf "%d" "$y"
                 if [ -r "$f" ]; then
                     golden=$(grep -c "2" "$f")
@@ -231,25 +219,26 @@ status_cmd() {
                     printf "\t-\t-\t-"
                 fi
                 echo
-            done < "$CACHE/events"
+            done < "$cache/events"
             ;;
         days)
-            [ -r "$CACHE/user" ] || die "not signed in"
+            [ -r "$cache/user" ] || die "not signed in"
 
-            user=$(cat "$CACHE/user")
-            url="$(printf "$YEAR_URL" "$year")"
+            user=$(cat "$cache/user")
 
-            if [ "$sync" = true ] || [ ! -r "$CACHE/completed_$year" ]; then
-                request "$url" > "$RUNTIME/year"
+            if [ "$sync" = true ] || [ ! -r "$cache/completed_$year" ]; then
+                request "$c_url_base/$year" > "$tmp/year"
 
-                for _ in $(seq "$END_DAY"); do echo 0; done > "$RUNTIME/zeroes"
-                awk "$AWK_PARSE_DAYS" "$RUNTIME/year" \
+                for _ in $(seq "$c_end_day"); do echo 0; done > "$tmp/zeroes"
+                awk 'BEGIN { RS="<"; FS="=" }
+                     $1 == "a aria-label" { printf "%s\n", $2 }' \
+                    "$tmp/year" \
                     | rev | cut -c6- | rev | tr -d '"' \
                     | sort -nk2 \
                     | sed 's/.*two stars.*/2/;s/.*one star.*/1/;s/Day.*/0/' \
-                    | paste "$RUNTIME/zeroes" - | tr -d '\t' \
+                    | paste "$tmp/zeroes" - | tr -d '\t' \
                     | sed 's/02/2/;s/01/1/' \
-                    > "$CACHE/completed_$year"
+                    > "$cache/completed_$year"
             fi
 
             d=1
@@ -257,7 +246,7 @@ status_cmd() {
             echo '-------------------------------------'
             printf "Day\tStars\tTitle (solution name)\n"
             while read -r comp; do
-                desc_path="$(printf "$OBJ_FSTR" "$year" "$d" "$OBJ_DESC")"
+                desc_path="$(printf "$c_fstr_obj" "$year" "$d" "$c_obj_desc")"
                 if [ -r "$desc_path" ]; then
                     puzzle_title="$(grep '<article' "$desc_path" \
                             | awk 'BEGIN {FS="---"; RS=":"} NR==2 {print $1}' \
@@ -269,7 +258,7 @@ status_cmd() {
                     puzzle_title=""
                 fi
 
-                day_dir="$(echo "$(printf "$DAY_FSTR" "$year" "$d")"*)"
+                day_dir="$(echo "$(printf "$c_fstr_day" "$year" "$d")"*)"
                 if [ -r "$day_dir" ];
                 then dirname="($(basename "$day_dir" | cut -c 7-))"
                 else dirname=""
@@ -291,56 +280,57 @@ status_cmd() {
                 printf '%s\t%s\t%s\n' "$day_str" "$stars" "$title"
 
                 d=$((d+1))
-            done < "$CACHE/completed_$year"
+            done < "$cache/completed_$year"
             ;;
         stats)
-            [ -r "$CACHE/user" ] || die "not signed in"
+            [ -r "$cache/user" ] || die "not signed in"
 
-            user=$(cat "$CACHE/user")
-            url="$(printf "$STATS_URL" "$year")"
+            user=$(cat "$cache/user")
 
-            if [ "$sync" = true ] || [ ! -r "$CACHE/stats_$year" ]; then
-                request "$url" > "$RUNTIME/stats"
+            if [ "$sync" = true ] || [ ! -r "$cache/stats_$year" ]; then
+                request "$c_url_base/$year/leaderboard/self" > "$tmp/stats"
 
-                beg=$(awk '/<pre>/ {print NR; exit}' "$RUNTIME/stats")
-                end=$(awk '/<\/pre>/ {print NR}' "$RUNTIME/stats" | tail -n1)
-                tail -n +"$beg" "$RUNTIME/stats" | head -n $((end-beg+1)) \
+                beg=$(awk '/<pre>/ {print NR; exit}' "$tmp/stats")
+                end=$(awk '/<\/pre>/ {print NR}' "$tmp/stats" | tail -n1)
+                tail -n +"$beg" "$tmp/stats" | head -n $((end-beg+1)) \
                     | sed 's/^.*<pre>/<pre>/' \
-                    > "$CACHE/stats_$year"
+                    > "$cache/stats_$year"
             fi
 
-            $HTML_DUMP "$CACHE/stats_$year" | cat
+            $c_html_dump "$cache/stats_$year" | cat
             ;;
         login)
-            if [ -r "$JAR" ]; then
+            if [ -r "$cache_jar" ]; then
                 if [ "$sync" = true ]; then
-                    request "$EVENTS_URL" > "$RUNTIME/events"
-                    if grep "Log In" "$RUNTIME/events"; then
+                    request "$c_url_base/$c_start_year/events" > "$tmp/events"
+                    if grep "Log In" "$tmp/events"; then
                         echo "Logic session expired."
                     else
-                        awk "$AWK_PARSE_USER" "$RUNTIME/events" \
-                            | tr -d " " > "$CACHE/user"
+                        awk 'BEGIN { RS="<"; FS=">" }
+                             $1 == "div class=\"user\"" { printf "%s\n", $2 }' \
+                            "$tmp/events" \
+                            | tr -d " " > "$cache/user"
                     fi
                 fi
 
-                echo "Logged in as $(cat "$CACHE/user")."
+                echo "Logged in as $(cat "$cache/user")."
             else
                 echo "Logged out."
             fi
             ;;
-        *) die 'invalid command -- "%s"\n\n%s' "$cmd" "$USAGE_STATUS";;
+        *) die 'invalid command -- "%s"\n\n%s' "$cmd" "$c_usage_status";;
     esac
 }
 
 auth_cmd() {
     service="$1"
 
-    [ -z "$service" ] && die "no service provided.\n\n%s" "$USAGE_AUTH"
+    [ -z "$service" ] && die "no service provided.\n\n%s" "$c_usage_auth"
 
     case "$service" in
         reddit) auth_reddit;;
         *) die 'invalid service, not implemented -- "%s".\n\n%s' \
-               "$service" "$USAGE_AUTH";;
+               "$service" "$c_usage_auth";;
     esac
 }
 
@@ -354,71 +344,71 @@ auth_reddit() {
     stty echo
     printf "\n"
 
-    rm -f "$JAR"
+    rm -f "$cache_jar"
 
     echo "Fetching CSRF token, reddit login session cookie..."
-    csrf=$(request "https://www.reddit.com/login/" -c "$JAR" | \
+    csrf=$(request "https://www.reddit.com/login/" -c "$cache_jar" | \
            grep 'csrf_token' | \
            grep -Eo "[0-9a-z]{40}")
 
     echo "Signing in to reddit..."
     LOGIN_PARAMS="username=$username&password=$password&csrf_token=$csrf"
-    code=$(curl -s -H "$AGENT" --data "$LOGIN_PARAMS" \
-                -b "$JAR" -c "$JAR" \
+    code=$(curl -s -H "$c_user_agent" --data "$LOGIN_PARAMS" \
+                -b "$cache_jar" -c "$cache_jar" \
                 -o /dev/null -w '%{http_code}' \
                 "https://www.reddit.com/login" \
            || exit 1)
     if [ "$code" -eq 400 ]; then
         echo "invalid password"
-        rm -f "$JAR"
+        rm -f "$cache_jar"
         exit 1
     fi
 
     echo "Fetching uh token..."
-    uh=$(curl -s -H "$AGENT" \
-              -b "$JAR" \
-              -L "$AUTH_REDDIT_URL" | \
+    uh=$(curl -s -H "$c_user_agent" \
+              -b "$cache_jar" \
+              -L "$c_url_base/auth/reddit" | \
          grep -Eo "[0-9a-z]{50}" | \
          head -n1 \
          || exit 1)
 
     echo "Authorizing application..."
-    AUTH_PARAMS="client_id=macQY9D1vLELaw&duration=temporary&redirect_uri=https://adventofcode.com/auth/reddit/callback&response_type=code&scope=identity&state=x&uh=$uh&authorize=Accept"
-    curl -s --data "$AUTH_PARAMS" \
-         -H "$AGENT" \
-         -b "$JAR" -c "$JAR" \
+    c_auth="client_id=macQY9D1vLELaw&duration=temporary&redirect_uri=https://adventofcode.com/auth/reddit/callback&response_type=code&scope=identity&state=x&uh=$uh&authorize=Accept"
+    curl -s --data "$c_auth" \
+         -H "$c_user_agent" \
+         -b "$cache_jar" -c "$cache_jar" \
          -L "https://www.reddit.com/api/v1/authorize" > /dev/null
 
     # Keep only the needed session cookie.
-    sed -i -n '/adventofcode.com/p' "$JAR"
+    sed -i -n '/adventofcode.com/p' "$cache_jar"
 
     status_cmd -s login
 }
 
 fetch_cmd() {
     object=$1
-    [ -z "$object" ] && die 'no object provided\n%s' "$USAGE_FETCH"
+    [ -z "$object" ] && die 'no object provided\n%s' "$c_usage_fetch"
 
     url=""
     needs_auth=false
     case "$object" in
-        "$OBJ_INPUT")
-            url="$(printf "$INPUT_URL" "$year" "$day")";
+        "$c_obj_input")
+            url="$c_url_base/$year/day/$day/input";
             needs_auth=true;;
-        "$OBJ_DESC")
-            url="$(printf "$DESC_URL" "$year" "$day")";;
+        "$c_obj_desc")
+            url="$c_url_base/$year/day/$day";;
         *)
             die 'invalid object to fetch -- "%s"' "$object";;
     esac
 
-    [ "$needs_auth" = "true" -a ! -f "$JAR" ] && die "not signed in"
+    [ "$needs_auth" = "true" -a ! -f "$cache_jar" ] && die "not signed in"
 
     echo "Fetching $object for day $day, $year..."
-    request "$url" > "$RUNTIME/object"
+    request "$url" > "$tmp/object"
 
-    mkdir -p "$CACHE/puzzles"
-    output_path="$(printf "$OBJ_FSTR" $year $day "$object")"
-    cp "$RUNTIME/object" "$output_path"
+    mkdir -p "$cache/puzzles"
+    output_path="$(printf "$c_fstr_obj" $year $day "$object")"
+    cp "$tmp/object" "$output_path"
 }
 
 view_cmd() {
@@ -427,16 +417,16 @@ view_cmd() {
     while getopts c: flag; do
         case "$flag" in
             c) viewer="$OPTARG";;
-            *) die 'invalid flag\n\n%s' "$USAGE_VIEW"
+            *) die 'invalid flag\n\n%s' "$c_usage_view"
         esac
     done
     shift $((OPTIND-1))
 
     view_object=$1
-    [ -z "$view_object" ] && die 'no object provided\n%s' "$USAGE_VIEW"
+    [ -z "$view_object" ] && die 'no object provided\n%s' "$c_usage_view"
     shift 1
-    if [ "$view_object" = "$OBJ_EX" ]; then
-        fetch_object="$OBJ_DESC"
+    if [ "$view_object" = "$c_obj_ex" ]; then
+        fetch_object="$c_obj_desc"
         exnum="$1"
         if [ -z "$exnum" ];
         then exnum=1
@@ -444,18 +434,18 @@ view_cmd() {
         fi
 
         [ "$exnum" -gt 0 ] 2> /dev/null ||
-            die 'argument must be a number larger than zero\n%s' "$USAGE_VIEW"
+            die 'argument must be a number larger than zero\n%s' "$c_usage_view"
     else
         fetch_object="$view_object"
     fi
     [ -n "$*" ] && die 'trailing arguments -- %s' "$@"
 
-    object_path="$(printf "$OBJ_FSTR" "$year" "$day" "$fetch_object")"
+    object_path="$(printf "$c_fstr_obj" "$year" "$day" "$fetch_object")"
     fetch=false
     if [ ! -r "$object_path" ]; then
         # Fetch if non-existent
         fetch=true
-    elif [ "$fetch_object" = "$OBJ_DESC" ]; then
+    elif [ "$fetch_object" = "$c_obj_desc" ]; then
         # Fetch if second part available
         p1_completed=false
         p2_downloaded=false
@@ -471,13 +461,13 @@ view_cmd() {
     [ "$fetch" = "true" ] && fetch_cmd "$fetch_object"
 
     case "$view_object" in
-        "$OBJ_DESC")
+        "$c_obj_desc")
             beg=$(awk '/<article/ {print FNR; exit}' "$object_path")
             end=$(awk '/>get your puzzle input</ {print FNR}' "$object_path" | tail -n1)
             tail -n +"$beg" "$object_path" | head -n $((end-beg+1)) \
-                | $HTML_DUMP > "$RUNTIME/view"
+                | $c_html_dump > "$tmp/view"
             ;;
-        "$OBJ_EX")
+        "$c_obj_ex")
             nex=$(grep -c "<pre><code>" "$object_path")
             if [ "$exnum" -gt "$nex" ]; then
                 die "example %d not found, %d example(s) were found" \
@@ -494,30 +484,30 @@ view_cmd() {
                 | sed 's/<pre><code>//g;s,</code></pre>,,g' \
                 | sed 's/<em>//g;s,</em>,,g' \
                 | sed 's/&lt;/</g;s/&gt;/>/g' \
-                > "$RUNTIME/view"
+                > "$tmp/view"
             ;;
-        *) cp "$object_path" "$RUNTIME/view";;
+        *) cp "$object_path" "$tmp/view";;
     esac
 
-    $viewer "$RUNTIME/view"
+    $viewer "$tmp/view"
 }
 
 edit_cmd() {
     extension="*"
-    name="$EXEC_NAME"
+    name="$c_exec_name"
     OPTIND=1
     while getopts n:e: flag; do
         case "$flag" in
             n) name="$OPTARG";;
             e) extension="$OPTARG";;
-            *) die 'invalid flag\n\n%s' "$USAGE_EDIT"
+            *) die 'invalid flag\n\n%s' "$c_usage_edit"
         esac
     done
     shift $((OPTIND-1))
 
-    day_dir="$(echo "$(printf "$DAY_FSTR" "$year" "$day")"*)"
+    day_dir="$(echo "$(printf "$c_fstr_day" "$year" "$day")"*)"
     if [ ! -d "$day_dir" ]; then
-        day_dir_pre="$(printf "${DAY_FSTR}%s" "$year" "$day" "$dirname")"
+        day_dir_pre="$(printf "${c_fstr_day}%s" "$year" "$day" "$dirname")"
         printf 'Solution directory name: %s' "$day_dir_pre"
         read -r dir_in
         [ -z "$dir_in" ] && die "no name provided."
@@ -542,7 +532,7 @@ edit_cmd() {
 run_cmd() {
     input=""
     input_file=""
-    exec_name="$EXEC_NAME"
+    exec_name="$c_exec_name"
     direct_output="false"
     OPTIND=1
     while getopts i:I:e:n:d flag; do
@@ -552,27 +542,27 @@ run_cmd() {
             e) exnum=$OPTARG;;
             n) exec_name=$OPTARG;;
             d) direct_output=true;;
-            *) die 'invalid flag\n\n%s' "$USAGE_RUN"
+            *) die 'invalid flag\n\n%s' "$c_usage_run"
         esac
     done
     shift $((OPTIND-1))
 
-    day_dir="$(echo "$(printf "$DAY_FSTR" "$year" "$day")"*)"
+    day_dir="$(echo "$(printf "$c_fstr_day" "$year" "$day")"*)"
     exe="$day_dir/$exec_name"
 
     [ -d "$day_dir" ] || die "no solution directory at %s" "$day_dir"
 
     if [ -n "$exnum" ]; then
-        view_cmd -ccat ex "$exnum" > "$RUNTIME/example"
-        input_file="$RUNTIME/example"
+        view_cmd -ccat ex "$exnum" > "$tmp/example"
+        input_file="$tmp/example"
     fi
 
     provided_input=false
     if [ -n "$input" ]; then
-        input_file="$RUNTIME/input"
+        input_file="$tmp/input"
         echo "$input" > "$input_file"
     elif [ -z "$input_file" ]; then
-        input_file=$(printf "$OBJ_FSTR" "$year" "$day" $OBJ_INPUT)
+        input_file=$(printf "$c_fstr_obj" "$year" "$day" $c_obj_input)
         [ -r "$input_file" ] || fetch_cmd "input" "$year" "$day"
         provided_input=true
     fi
@@ -582,20 +572,20 @@ run_cmd() {
     if [ "$direct_output" = "true" ]; then
         make -s "$exe" && "./$exe" < "$input_file" || die "execution failed"
     else
-        make -s "$exe" && "./$exe" < "$input_file" > "$RUNTIME/answer" \
+        make -s "$exe" && "./$exe" < "$input_file" > "$tmp/answer" \
             || die "execution failed"
 
-        if [ "$provided_input" = "true" ] && [ -r "$RUNTIME/answer" ]; then
-            answer_file=$(printf "$OBJ_FSTR" $year $day "$OBJ_ANS")
-            cp "$RUNTIME/answer" "$answer_file"
+        if [ "$provided_input" = "true" ] && [ -r "$tmp/answer" ]; then
+            answer_file=$(printf "$c_fstr_obj" $year $day "$c_obj_ans")
+            cp "$tmp/answer" "$answer_file"
         fi
 
-        cat "$RUNTIME/answer"
+        cat "$tmp/answer"
     fi
 }
 
 submit_cmd() {
-    [ -f "$JAR" ] || die "not signed in"
+    [ -f "$cache_jar" ] || die "not signed in"
 
     case $(completed_part) in
         0) part=1;;
@@ -606,12 +596,12 @@ submit_cmd() {
 
     ans="$1"
     if [ -z "$ans" ]; then
-        answer_file=$(printf "$OBJ_FSTR" "$year" "$day" "$OBJ_ANS")
+        answer_file=$(printf "$c_fstr_obj" "$year" "$day" "$c_obj_ans")
         if [ -r "$answer_file" ]; then
             ans=$(tail -n +"$part" "$answer_file" | head -n1)
         else
             die "answer not provided and no answer file found\n%s" \
-                "$USAGE_SUBMIT"
+                "$c_usage_submit"
         fi
     fi
 
@@ -623,17 +613,17 @@ submit_cmd() {
     echo
 
     if [ "$prompt" != "${prompt#[Yy]}" ]; then
-        url="$(printf "$ANSWER_URL" "$year" "$day")"
-        request "$url" --data "level=$part&answer=$ans" > "$RUNTIME/submit"
+        request "$c_url_base/$year/day/$day/answer" \
+            --data "level=$part&answer=$ans" > "$tmp/submit"
 
-        if grep -q "That's the right answer!" "$RUNTIME/submit"; then
+        if grep -q "That's the right answer!" "$tmp/submit"; then
             # Update completion in cache
-            if [ -r "$CACHE/completed_$year" ]; then
-                sed -i ''"$day"' s/.*/'$part'/' "$CACHE/completed_$year"
+            if [ -r "$cache/completed_$year" ]; then
+                sed -i ''"$day"' s/.*/'$part'/' "$cache/completed_$year"
             fi
         fi
 
-        grep '<article>' "$RUNTIME/submit" \
+        grep '<article>' "$tmp/submit" \
             | sed 's/<[^>]*>/ /g' \
             | tr -s '[:space:]' \
             | sed 's/^\s*//g;s/[!.][^!^.]*$/!/'
@@ -644,8 +634,8 @@ submit_cmd() {
 
 clean_cmd() {
     make -s clean
-    rm -rf "$CACHE"
-    find . -type f -name "${EXEC_NAME:?}" -print0 | xargs -0 rm
+    rm -rf "$cache"
+    find . -type f -name "${c_exec_name:?}" -print0 | xargs -0 rm
 }
 
 help_cmd() {
@@ -653,34 +643,34 @@ help_cmd() {
     if [ -n "$topic" ]; then
         shift
         case "$topic" in
-            select) echo "$USAGE_SELECT";;
-            auth) echo "$USAGE_AUTH";;
-            status) echo "$USAGE_STATUS";;
-            fetch) echo "$USAGE_FETCH";;
-            view) echo "$USAGE_VIEW";;
-            edit) echo "$USAGE_EDIT";;
-            run) echo "$USAGE_RUN";;
-            submit) echo "$USAGE_SUBMIT";;
-            clean) echo "$USAGE_CLEAN";;
-            help) echo "$USAGE_HELP";;
-            *) die 'invalid topic -- "%s"\n\n%s' "$topic" "$USAGE_HELP";
+            select) echo "$c_usage_select";;
+            auth) echo "$c_usage_auth";;
+            status) echo "$c_usage_status";;
+            fetch) echo "$c_usage_fetch";;
+            view) echo "$c_usage_view";;
+            edit) echo "$c_usage_edit";;
+            run) echo "$c_usage_run";;
+            submit) echo "$c_usage_submit";;
+            clean) echo "$c_usage_clean";;
+            help) echo "$c_usage_help";;
+            *) die 'invalid topic -- "%s"\n\n%s' "$topic" "$c_usage_help";
         esac
     else
         echo "aoc.sh -- Advent of Code helper script"
-        printf '\n%s\n' "$USAGE"
+        printf '\n%s\n' "$c_usage"
     fi
     [ -n "$1" ] && warn 'excess arguments -- %s' "$*"
 }
 
-[ -d "$RUNTIME" ] || mkdir -p "$RUNTIME"
-[ -d "$CACHE" ] || mkdir -p "$CACHE"
+[ -d "$tmp" ] || mkdir -p "$tmp"
+[ -d "$cache" ] || mkdir -p "$cache"
 
 # Cache default selections if not cached
-[ -r "$CACHE/year" ] || echo "$START_YEAR" > "$CACHE/year"
-[ -r "$CACHE/day"  ] || echo "$START_DAY"  > "$CACHE/day"
+[ -r "$cache/year" ] || echo "$c_start_year" > "$cache/year"
+[ -r "$cache/day"  ] || echo "$c_start_day"  > "$cache/day"
 
-cached_year=$(cat "$CACHE/year")
-cached_day=$(cat "$CACHE/day")
+cached_year=$(cat "$cache/year")
+cached_day=$(cat "$cache/day")
 
 query=false
 year=;day=
@@ -689,7 +679,7 @@ while getopts qy:d:p: flag; do
         q) query=true;;
         y) year="$OPTARG";;
         d) day="$OPTARG";;
-        *) die 'invalid flag\n\n%s' "$USAGE"
+        *) die 'invalid flag\n\n%s' "$c_usage"
     esac
 done
 shift $((OPTIND-1))
@@ -712,14 +702,18 @@ fi
 [ -z "$year" ] && year=$cached_year
 [ -z "$day"  ] &&  day=$cached_day
 
+# trim leading whitespace
+year=${year#${year%%[![:space:]]*}}
+day=${day#${day%%[![:space:]]*}}
+
 # Assert valid selections
-[ "$year" -ge "$START_YEAR" ] 2> /dev/null \
+[ "$year" -ge "$c_start_year" ] 2> /dev/null \
     || die 'invalid year -- "%s"\n' "$year"
-[ "$day" -ge "$START_DAY" -a "$day" -le "$END_DAY" ] 2> /dev/null \
+[ "$day" -ge "$c_start_day" -a "$day" -le "$c_end_day" ] 2> /dev/null \
     || die 'invalid day -- "%s"\n' "$day"
 
 cmd=$1
-[ -z "$cmd" ] && die 'no command provided.\n\n%s' "$USAGE"
+[ -z "$cmd" ] && die 'no command provided.\n\n%s' "$c_usage"
 
 shift 1
 
@@ -734,9 +728,9 @@ case "$cmd" in
     submit) submit_cmd "$@";;
     clean) clean_cmd "$@";;
     help) help_cmd "$@";;
-    *) die 'invalid command -- "%s"\n\n%s' "$cmd" "$USAGE";;
+    *) die 'invalid command -- "%s"\n\n%s' "$cmd" "$c_usage";;
 esac
 
-rm -rf "$RUNTIME"
+rm -rf "$tmp"
 
 exit 0

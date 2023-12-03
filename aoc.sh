@@ -566,6 +566,7 @@ options:
     -I <input_file>     set puzzle input file
     -e <example>        set puzzle input to example from puzzle description
     -d                  do not capture stdout, do not store answer
+    -g                  run program using gdb, implies -d
     -n <exec_name>      set executable name
 eof
 )
@@ -575,18 +576,22 @@ run_cmd() {
     input_file=""
     exec_name="$c_exec_name"
     capture_output="true"
+    debug="false"
     OPTIND=1
-    while getopts i:I:e:n:d flag; do
+    while getopts i:I:e:n:dg flag; do
         case "$flag" in
             i) input=$OPTARG;;
             I) input_file=$OPTARG;;
             e) exnum=$OPTARG;;
             n) exec_name=$OPTARG;;
             d) capture_output=false;;
+            g) debug=true;;
             *) die "invalid flag" "$c_usage_run"
         esac
     done
     shift $((OPTIND-1))
+
+    [ "$debug" = "true" ] && capture_output="false"
 
     day_dir="$(echo "$(path_solution "")"*)"
     exe="$day_dir/$exec_name"
@@ -614,6 +619,7 @@ run_cmd() {
     [ -x "$exe" ] || die "build failed -- no executable file"
 
     cmd="'./$exe' < '$input_file'"
+    [ "$debug" = "true" ] && cmd="gdb -ex 'set args < $input_file' '$exe'"
     [ "$capture_output" = "true" ] && cmd="$cmd > '$tmp/answer'"
     eval "$cmd" || die "execution failed, use -d for partial output"
 

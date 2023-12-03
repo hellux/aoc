@@ -574,7 +574,7 @@ run_cmd() {
     input=""
     input_file=""
     exec_name="$c_exec_name"
-    direct_output="false"
+    capture_output="true"
     OPTIND=1
     while getopts i:I:e:n:d flag; do
         case "$flag" in
@@ -582,7 +582,7 @@ run_cmd() {
             I) input_file=$OPTARG;;
             e) exnum=$OPTARG;;
             n) exec_name=$OPTARG;;
-            d) direct_output=true;;
+            d) capture_output=false;;
             *) die "invalid flag" "$c_usage_run"
         esac
     done
@@ -610,12 +610,14 @@ run_cmd() {
 
     [ -r "$input_file" ] || die "can't read input file"
 
-    if [ "$direct_output" = "true" ]; then
-        make -s "$exe" && "./$exe" < "$input_file" || die "execution failed"
-    else
-        make -s "$exe" && "./$exe" < "$input_file" > "$tmp/answer" \
-            || die "execution failed"
+    make -s "$exe" || die "build failed"
+    [ -x "$exe" ] || die "build failed -- no executable file"
 
+    cmd="'./$exe' < '$input_file'"
+    [ "$capture_output" = "true" ] && cmd="$cmd > '$tmp/answer'"
+    eval "$cmd" || die "execution failed, use -d for partial output"
+
+    if [ "$capture_output" = "true" ]; then
         if [ "$provided_input" = "true" ] && [ -r "$tmp/answer" ]; then
             cp "$tmp/answer" "$(path_obj "$c_obj_ans")"
         fi

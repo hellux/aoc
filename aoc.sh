@@ -18,7 +18,8 @@ c_end_day=25
 c_url_base="https://adventofcode.com"
 
 c_exec_name=solution
-c_user_agent="user-agent: Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101 Firefox/68.0"
+c_user_agent_auth="user-agent: Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101 Firefox/68.0"
+c_user_agent="User-Agent:github.com/hellux/aoc by noah@hllmn.net"
 c_html_dump="elinks -no-numbering -no-references -dump -dump-color-mode 1"
 
 path_obj() { printf "%s/puzzles/aoc_%d-%02d_%s" "$cache" "$year" "$day" "$1"; }
@@ -72,6 +73,7 @@ request() {
     shift 1
 
     code=$(curl -L -s -b "$cache/jar" -o "$tmp/request" -w '%{http_code}' \
+           -H "$c_user_agent" \
            "$@" "$url")
 
     [ "$code" != "200" ] && die "HTTP request to '$url' failed. -- code $code"
@@ -351,7 +353,7 @@ auth_reddit() {
 
     echo "Signing in to reddit..."
     LOGIN_PARAMS="username=$username&password=$password&csrf_token=$csrf"
-    code=$(curl -s -H "$c_user_agent" --data "$LOGIN_PARAMS" \
+    code=$(curl -s -H "$c_user_agent_auth" --data "$LOGIN_PARAMS" \
                 -b "$cache/jar" -c "$cache/jar" \
                 -o /dev/null -w '%{http_code}' \
                 "https://www.reddit.com/login" \
@@ -363,7 +365,7 @@ auth_reddit() {
     fi
 
     echo "Fetching uh token..."
-    uh=$(curl -s -H "$c_user_agent" \
+    uh=$(curl -s -H "$c_user_agent_auth" \
               -b "$cache/jar" \
               -L "$c_url_base/auth/reddit" | \
          grep -Eo "[0-9a-z]{50}" | \
@@ -373,7 +375,7 @@ auth_reddit() {
     echo "Authorizing application..."
     c_auth="client_id=macQY9D1vLELaw&duration=temporary&redirect_uri=https://adventofcode.com/auth/reddit/callback&response_type=code&scope=identity&state=x&uh=$uh&authorize=Accept"
     curl -s --data "$c_auth" \
-         -H "$c_user_agent" \
+         -H "$c_user_agent_auth" \
          -b "$cache/jar" -c "$cache/jar" \
          -L "https://www.reddit.com/api/v1/authorize" > /dev/null
 

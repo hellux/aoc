@@ -78,3 +78,15 @@ part is available.
 
     $ aoc view desc
     Fetching desc for day 7, 2015...
+
+## Automation guidelines
+
+This tool follows the [automation guidelines] on the /r/adventofcode community
+wiki:
+
+[automation guidelines]: https://www.reddit.com/r/adventofcode/wiki/faqs/automation
+
+- There are no scheduled or repeating requests, all requests are initiated
+  manually.
+- Inputs and descriptions are cached, and will only be refetched on demand.
+- The User-Agent links to this repository.

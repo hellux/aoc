@@ -1,26 +1,6 @@
 # aoc.sh
 
-    aoc.sh -- Advent of Code helper script
-
-    usage: aoc.sh [<args>] <command> [<args>]
-
-    flags:
-        -y      -- select year
-        -d      -- select day
-        -p      -- select part
-        -q      -- query selection
-
-    commands:
-        select  -- save current selection of year, day and part
-        status  -- show selection, login and completion status
-        auth    -- authenticate user and create session cookie
-        fetch   -- fetch puzzle description or input
-        view    -- view fetched object
-        edit    -- edit source file of puzzle solution
-        run     -- compile and execute solution
-        submit  -- submit answer for puzzle
-        clean   -- delete all build files, fetched items, cookies
-        help    -- get help about command
+Advent of Code helper script
 
 ## Basic usage
 

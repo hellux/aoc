@@ -1,5 +1,5 @@
 .POSIX:
-.SUFFIXES: .lisp .py .go .hs .rs .awk .jq .nim .zig
+.SUFFIXES: .lisp .py .go .hs .rs .awk .jq .nim .zig .ha
 
 OBJDIR = build
 CFLAGS += -g -Wall -Wextra -Wconversion
@@ -38,6 +38,9 @@ ASFLAGS += -no-pie -znoexecstack
 
 .zig:
 	zig build-exe $< && mv solution $@
+
+.ha:
+	hare build -o $@ $<
 
 clean:
 	rm -rf ${OBJDIR}

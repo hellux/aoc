@@ -618,14 +618,16 @@ run_cmd() {
     input_file=""
     exec_name="$c_exec_name"
     capture_output="true"
+    precmd=""
     debug="false"
     OPTIND=1
-    while getopts i:I:e:n:dg flag; do
+    while getopts i:I:e:c:n:dg flag; do
         case "$flag" in
             i) input=$OPTARG;;
             I) input_file=$OPTARG;;
             e) exnum=$OPTARG;;
             n) exec_name=$OPTARG;;
+            c) precmd=$OPTARG;;
             d) capture_output=false;;
             g) debug=true;;
             *) die "invalid flag" "$c_usage_run"
@@ -661,6 +663,7 @@ run_cmd() {
     [ -x "$exe" ] || die "build failed -- no executable file"
 
     cmd="'./$exe' < '$input_file'"
+    [ -n "$precmd" ] && cmd="$precmd $cmd"
     [ "$debug" = "true" ] && cmd="gdb -ex 'set args < $input_file' '$exe'"
     [ "$capture_output" = "true" ] && cmd="$cmd > '$tmp/answer'"
     eval "$cmd" || die "execution failed, use -d for partial output"

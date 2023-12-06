@@ -717,6 +717,12 @@ submit_cmd() {
             if [ -r "$cache/completed_$year" ]; then
                 sed -i ''"$day"' s/.*/'$part'/' "$cache/completed_$year"
             fi
+
+            # create git commit
+            {
+                git add "$(path_solution "")"*/solution.* &&
+                    git commit -qm "$year day $day part $part"
+            } 2>/dev/null
         fi
 
         grep '<article>' "$tmp/submit" \

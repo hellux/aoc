@@ -1,9 +1,8 @@
 #!/bin/sh
 
 die() {
-    str=$1
-    shift
-    printf 'error: '"$str"'\n' "$@" 1>&2
+    printf "error: " >&2
+    printf "%s\n" "$@" >&2
     rm -rf "$tmp"
     exit 1
 }
@@ -75,9 +74,7 @@ request() {
     code=$(curl -L -s -b "$cache/jar" -o "$tmp/request" -w '%{http_code}' \
            "$@" "$url")
 
-    if [ "$code" != "200" ]; then
-        die "HTTP request to '%s' failed. -- code %s" "$url" "$code"
-    fi
+    [ "$code" != "200" ] && die "HTTP request to '$url' failed. -- code $code"
 
     cat "$tmp/request"
 }
@@ -125,8 +122,7 @@ select_cmd() {
                 then day="$input"
                 elif [ "$c_start_year" -le "$input" ] 2> /dev/null;
                 then year="$input"
-                else die 'invalid input -- "%s"\n\n%s'
-                         "$input" "$c_usage_select"
+                else die "invalid selection -- $input" "$c_usage_select"
                 fi;;
         esac
     done
@@ -158,7 +154,7 @@ status_cmd() {
     while getopts s flag; do
         case "$flag" in
             s) sync=true;;
-            *) die 'invalid flag\n\n%s' "$c_usage_status"
+            *) die "invalid flag" "$c_usage_status"
         esac
     done
     shift $((OPTIND-1))
@@ -306,7 +302,7 @@ status_cmd() {
                 echo "Logged out."
             fi
             ;;
-        *) die 'invalid command -- "%s"\n\n%s' "$cmd" "$c_usage_status";;
+        *) die "invalid command -- $cmd" "$c_usage_status";;
     esac
 }
 
@@ -325,12 +321,11 @@ auth_cmd() {
 
     service="$1"
 
-    [ -z "$service" ] && die "no service provided.\n\n%s" "$c_usage_auth"
+    [ -z "$service" ] && die "no service specified" "$c_usage_auth"
 
     case "$service" in
         reddit) auth_reddit;;
-        *) die 'invalid service, not implemented -- "%s".\n\n%s' \
-               "$service" "$c_usage_auth";;
+        *) die "unimplemented service -- $service" "$c_usage_auth";;
     esac
 }
 
@@ -396,7 +391,7 @@ eof
 
 fetch_cmd() {
     object=$1
-    [ -z "$object" ] && die 'no object provided\n%s' "$c_usage_fetch"
+    [ -z "$object" ] && die "no object specified" "$c_usage_fetch"
 
     url=""
     needs_auth=false
@@ -406,8 +401,7 @@ fetch_cmd() {
             needs_auth=true;;
         "$c_obj_desc")
             url="$c_url_base/$year/day/$day";;
-        *)
-            die 'invalid object to fetch -- "%s"' "$object";;
+        *) die "invalid fetch object -- $object";;
     esac
 
     [ "$needs_auth" = "true" ] && [ ! -r "$cache/jar" ] && die "not signed in"
@@ -437,13 +431,13 @@ view_cmd() {
     while getopts c: flag; do
         case "$flag" in
             c) viewer="$OPTARG";;
-            *) die 'invalid flag\n\n%s' "$c_usage_view"
+            *) die "invalid flag" "$c_usage_view"
         esac
     done
     shift $((OPTIND-1))
 
     view_object=$1
-    [ -z "$view_object" ] && die 'no object provided\n%s' "$c_usage_view"
+    [ -z "$view_object" ] && die "no object specified" "$c_usage_view"
     shift 1
     if [ "$view_object" = "$c_obj_ex" ]; then
         fetch_object="$c_obj_desc"
@@ -454,11 +448,11 @@ view_cmd() {
         fi
 
         [ "$exnum" -gt 0 ] 2> /dev/null ||
-            die 'argument must be a number larger than zero\n%s' "$c_usage_view"
+            die "invalid example number -- $exnum" "$c_usage_view"
     else
         fetch_object="$view_object"
     fi
-    [ -n "$*" ] && die 'trailing arguments -- %s' "$@"
+    [ -n "$*" ] && die "trailing arguments -- $*"
 
     object_path=$(path_obj "$fetch_object")
     fetch=false
@@ -489,10 +483,8 @@ view_cmd() {
             ;;
         "$c_obj_ex")
             nex=$(grep -c "<pre><code>" "$object_path")
-            if [ "$exnum" -gt "$nex" ]; then
-                die "example %d not found, %d example(s) were found" \
-                    "$exnum" "$nex"
-            fi
+            [ "$exnum" -gt "$nex" ] &&
+                die "example $exnum not found, only $nex example(s) exist"
 
             beg=$(grep -n "<pre><code>" "$object_path" \
                 | cut -f1 -d: \
@@ -529,7 +521,7 @@ edit_cmd() {
     while getopts n: flag; do
         case "$flag" in
             n) name="$OPTARG";;
-            *) die 'invalid flag\n\n%s' "$c_usage_edit"
+            *) die "invalid flag" "$c_usage_edit"
         esac
     done
     shift $((OPTIND-1))
@@ -585,7 +577,7 @@ run_cmd() {
             e) exnum=$OPTARG;;
             n) exec_name=$OPTARG;;
             d) direct_output=true;;
-            *) die 'invalid flag\n\n%s' "$c_usage_run"
+            *) die "invalid flag" "$c_usage_run"
         esac
     done
     shift $((OPTIND-1))
@@ -593,7 +585,7 @@ run_cmd() {
     day_dir="$(echo "$(path_solution "")"*)"
     exe="$day_dir/$exec_name"
 
-    [ -d "$day_dir" ] || die "no solution directory at %s" "$day_dir"
+    [ -d "$day_dir" ] || die "no solution directory at $day_dir"
 
     if [ -n "$exnum" ]; then
         view_cmd -ccat ex "$exnum" > "$tmp/example"
@@ -646,12 +638,11 @@ submit_cmd() {
         if [ -r "$(path_obj "$c_obj_ans")" ]; then
             ans=$(tail -n +"$part" "$(path_obj "$c_obj_ans")" | head -n1)
         else
-            die "answer not provided and no answer file found\n%s" \
-                "$c_usage_submit"
+            die "answer not provided and no answer file found" "$c_usage_submit"
         fi
     fi
 
-    [ -z "$ans" ] && die "no answer available for part %d" "$part"
+    [ -z "$ans" ] && die "no answer available for part $part"
 
     printf "Submit answer \"%s\" for part %d of day %d, %d (y/N)? " \
            "$ans" "$part" "$day" "$year"
@@ -710,7 +701,7 @@ help_cmd() {
             submit) echo "$c_usage_submit";;
             clean) echo "$c_usage_clean";;
             help) echo "$c_usage_help";;
-            *) die 'invalid topic -- "%s"\n\n%s' "$topic" "$c_usage_help";
+            *) die "invalid topic -- $topic" "$c_usage_help";
         esac
     else
         echo "$aoc -- Advent of Code helper script"
@@ -734,7 +725,7 @@ while getopts y:d: flag; do
     case "$flag" in
         y) year="$OPTARG";;
         d) day="$OPTARG";;
-        *) die 'invalid flag\n\n%s' "$c_usage"
+        *) die "invalid flag" "$c_usage"
     esac
 done
 shift $((OPTIND-1))
@@ -749,12 +740,12 @@ day=${day#"${day%%[![:space:]]*}"}
 
 # Assert valid selections
 [ "$year" -ge "$c_start_year" ] 2> /dev/null \
-    || die 'invalid year -- "%s"\n' "$year"
+    || die "invalid year -- $year"
 { [ "$day" -ge "$c_start_day" ] && [ "$day" -le "$c_end_day" ]; } 2> /dev/null \
-    || die 'invalid day -- "%s"\n' "$day"
+    || die "invalid day -- $day"
 
 cmd=$1
-[ -z "$cmd" ] && die 'no command provided.\n\n%s' "$c_usage"
+[ -z "$cmd" ] && die "no command provided" "$c_usage"
 
 shift 1
 
@@ -769,7 +760,7 @@ case "$cmd" in
     submit) submit_cmd "$@";;
     clean) clean_cmd "$@";;
     help) help_cmd "$@";;
-    *) die 'invalid command -- "%s"\n\n%s' "$cmd" "$c_usage";;
+    *) die "invalid command -- $cmd" "$c_usage";;
 esac
 
 rm -rf "$tmp"

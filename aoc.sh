@@ -90,6 +90,34 @@ completed_part() {
     fi
 }
 
+ts_entry() { printf "%d-%02d-%s" "$year" "$day" "$1"; }
+ts_write() {
+    ts_read "$1" >/dev/null \
+        || echo "$(ts_entry "$1"):$(date +%s)" >> "$cache/timestamps"
+}
+ts_read() {
+    [ "$1" = "unlock" ] && date -d "$year-12-$day EST" +%s && return
+    ts_e=
+    [ -r "$cache/timestamps" ] && ts_e=$(grep -E "^$(ts_entry "$1")" "$cache/timestamps")
+    [ -n "$ts_e" ] && echo "${ts_e##*:}"
+}
+ts_diff() {
+    ts_a=$(ts_read "$1")
+    [ -z "$ts_a" ] && return
+    ts_b=$(ts_read "$2")
+    [ -z "$ts_b" ] && return
+    ts_d=$((ts_b-ts_a))
+    if [ "$ts_d" -gt 86400 ]; then
+        echo ">24h"
+    else
+        ts_h=$((ts_d/3600))
+        ts_d=$((ts_d%3600))
+        ts_m=$((ts_d/60))
+        ts_s=$((ts_d%60))
+        printf "%02d:%02d:%02d\n" "$ts_h" "$ts_m" "$ts_s"
+    fi
+}
+
 c_usage_select=$(cat <<eof
 usage: $aoc [-y YEAR] [-d DAY] select [<year>|<day>|<command>]..
 
@@ -526,6 +554,10 @@ view_cmd() {
             end=$(awk '/>get your puzzle input</ {print FNR}' "$object_path" | tail -n1)
             tail -n +"$beg" "$object_path" | head -n $((end-beg+1)) \
                 | $c_html_dump > "$tmp/view"
+
+            part=1
+            [ "$p1_completed" = "true" ] && part=2
+            ts_write "p${part}_desc"
             ;;
         "$c_obj_ex")
             nex=$(grep -c "<pre><code>" "$object_path")
@@ -719,17 +751,35 @@ submit_cmd() {
                 sed -i ''"$day"' s/.*/'$part'/' "$cache/completed_$year"
             fi
 
+            ts_write "p${part}_success"
+
+            ts_ul=$(ts_diff unlock p${part}_success)
+            [ -n "$ts_ul" ] && echo "Time since puzzle unlocked:            $ts_ul"
+
+            ts_p1=$(ts_diff p1_desc p${part}_success)
+            [ -n "$ts_p1" ] && echo "Time since reading part 1 description: $ts_p1"
+
+            ts_p2=$(ts_diff p2_desc p${part}_success)
+            [ -n "$ts_p2" ] && echo "Time since reading part 2 description: $ts_p2"
+
+            ts_fa=$(ts_diff p${part}_fail p${part}_success)
+            [ -n "$ts_fa" ] && echo "Time since first submission attempt:   $ts_fa"
+
             # create git commit
             {
                 git add "$(path_solution "")"*/solution.* &&
                     git commit -qm "$year day $day part $part"
             } 2>/dev/null
-        fi
 
-        grep '<article>' "$tmp/submit" \
-            | sed 's/<[^>]*>/ /g' \
-            | tr -s '[:space:]' \
-            | sed 's/^\s*//g;s/[!.][^!^.]*$/!/'
+            printf "\nThat's the right answer!\n"
+        else
+            ts_write "p${part}_fail"
+
+            grep '<article>' "$tmp/submit" \
+                | sed 's/<[^>]*>/ /g' \
+                | tr -s '[:space:]' \
+                | sed 's/^\s*//g;s/[!.][^!^.]*$/!/'
+        fi
     else
         echo "Submission cancelled."
     fi

@@ -165,6 +165,8 @@ status_cmd() {
     else shift 1
     fi
 
+    [ -n "$*" ] && die "trailing args -- $*"
+
     case "$cmd" in
         events)
             [ -r "$cache/user" ] || die "not signed in"
@@ -318,10 +320,11 @@ eof
 )
 
 auth_cmd() {
-
     service="$1"
-
     [ -z "$service" ] && die "no service specified" "$c_usage_auth"
+    shift 1
+
+    [ -n "$*" ] && die "trailing args -- $*"
 
     case "$service" in
         reddit) auth_reddit;;
@@ -439,6 +442,7 @@ view_cmd() {
     view_object=$1
     [ -z "$view_object" ] && die "no object specified" "$c_usage_view"
     shift 1
+
     if [ "$view_object" = "$c_obj_ex" ]; then
         fetch_object="$c_obj_desc"
         exnum="$1"
@@ -525,6 +529,8 @@ edit_cmd() {
         esac
     done
     shift $((OPTIND-1))
+
+    [ -n "$*" ] && die "trailing arguments -- $*"
 
     day_dir="$(echo "$(path_solution "")"*)"
     if [ ! -d "$day_dir" ]; then
@@ -675,6 +681,7 @@ Remove all build files and cached items.
 "
 
 clean_cmd() {
+    [ -n "$*" ] && die "trailing args -- $*"
     make -s clean
     rm -rf "$cache"
     find . -type f -name "${c_exec_name:?}" -print0 | xargs -0 rm

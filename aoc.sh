@@ -25,10 +25,10 @@ c_html_dump="elinks -no-numbering -no-references -dump -dump-color-mode 1"
 c_fstr_obj="$cache/puzzles/aoc_%d-%02d_%s"
 c_fstr_day="%d/day%02d_"
 
-c_obj_ans=answer
-c_obj_input=input
-c_obj_desc=desc
-c_obj_ex=ex
+c_obj_ans="answer"
+c_obj_input="input"
+c_obj_desc="desc"
+c_obj_ex="ex"
 
 aoc=$(basename "$0")
 
@@ -71,10 +71,9 @@ eof
 request() {
     url="$1"
     shift 1
-    args="$*"
 
     code=$(curl -L -s -b "$cache/jar" -o "$tmp/request" -w '%{http_code}' \
-           $args "$url")
+           "$@" "$url")
 
     if [ "$code" != "200" ]; then
         die "HTTP request to '%s' failed. -- code %s" "$url" "$code"
@@ -412,7 +411,7 @@ fetch_cmd() {
             die 'invalid object to fetch -- "%s"' "$object";;
     esac
 
-    [ "$needs_auth" = "true" -a ! -f "$cache/jar" ] && die "not signed in"
+    [ "$needs_auth" = "true" ] && [ ! -r "$cache/jar" ] && die "not signed in"
 
     echo "Fetching $object for day $day, $year..."
     request "$url" > "$tmp/object"
@@ -749,13 +748,13 @@ shift $((OPTIND-1))
 [ -z "$day"  ] &&  day=$cached_day
 
 # trim leading whitespace
-year=${year#${year%%[![:space:]]*}}
-day=${day#${day%%[![:space:]]*}}
+year=${year#"${year%%[![:space:]]*}"}
+day=${day#"${day%%[![:space:]]*}"}
 
 # Assert valid selections
 [ "$year" -ge "$c_start_year" ] 2> /dev/null \
     || die 'invalid year -- "%s"\n' "$year"
-[ "$day" -ge "$c_start_day" -a "$day" -le "$c_end_day" ] 2> /dev/null \
+{ [ "$day" -ge "$c_start_day" ] && [ "$day" -le "$c_end_day" ]; } 2> /dev/null \
     || die 'invalid day -- "%s"\n' "$day"
 
 cmd=$1

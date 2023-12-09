@@ -22,8 +22,8 @@ c_exec_name=solution
 c_user_agent="user-agent: Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101 Firefox/68.0"
 c_html_dump="elinks -no-numbering -no-references -dump -dump-color-mode 1"
 
-c_fstr_obj="$cache/puzzles/aoc_%d-%02d_%s"
-c_fstr_day="%d/day%02d_"
+path_obj() { printf "%s/puzzles/aoc_%d-%02d_%s" "$cache" "$year" "$day" "$1"; }
+path_solution() { printf "%d/day%02d_%s" "$year" "$day" "$1"; }
 
 c_obj_ans="answer"
 c_obj_input="input"
@@ -230,12 +230,12 @@ status_cmd() {
                     > "$cache/completed_$year"
             fi
 
-            d=1
+            day=1
             echo "$year completion for [$user]:"
             echo '-------------------------------------'
             printf "Day\tStars\tTitle (solution name)\n"
             while read -r comp; do
-                desc_path="$(printf "$c_fstr_obj" "$year" "$d" "$c_obj_desc")"
+                desc_path=$(path_obj "$c_obj_desc")
                 if [ -r "$desc_path" ]; then
                     puzzle_title="$(grep '<article' "$desc_path" \
                             | awk 'BEGIN {FS="---"; RS=":"} NR==2 {print $1}' \
@@ -247,7 +247,7 @@ status_cmd() {
                     puzzle_title=""
                 fi
 
-                day_dir="$(echo "$(printf "$c_fstr_day" "$year" "$d")"*)"
+                    day_dir="$(echo "$(path_solution "")"*)"
                 if [ -r "$day_dir" ];
                 then dirname="($(basename "$day_dir" | cut -c 7-))"
                 else dirname=""
@@ -260,15 +260,14 @@ status_cmd() {
                 else stars=""
                 fi
 
-                if [ "$d" -eq "$cached_day" ] && \
-                   [ "$year" -eq "$cached_year" ];
-                then day_str="[$d]"
-                else day_str=" $d"
+                if [ "$day" -eq "$cached_day" ] && [ "$year" -eq "$cached_year" ];
+                then day_str="[$day]"
+                else day_str=" $day"
                 fi
 
                 printf '%s\t%s\t%s\n' "$day_str" "$stars" "$title"
 
-                d=$((d+1))
+                day=$((day+1))
             done < "$cache/completed_$year"
             ;;
         stats)
@@ -417,8 +416,7 @@ fetch_cmd() {
     request "$url" > "$tmp/object"
 
     mkdir -p "$cache/puzzles"
-    output_path="$(printf "$c_fstr_obj" $year $day "$object")"
-    cp "$tmp/object" "$output_path"
+    cp "$tmp/object" "$(path_obj "$object")"
 }
 
 c_usage_view=$(cat <<eof
@@ -462,7 +460,7 @@ view_cmd() {
     fi
     [ -n "$*" ] && die 'trailing arguments -- %s' "$@"
 
-    object_path="$(printf "$c_fstr_obj" "$year" "$day" "$fetch_object")"
+    object_path=$(path_obj "$fetch_object")
     fetch=false
     if [ ! -r "$object_path" ]; then
         # Fetch if non-existent
@@ -536,9 +534,9 @@ edit_cmd() {
     done
     shift $((OPTIND-1))
 
-    day_dir="$(echo "$(printf "$c_fstr_day" "$year" "$day")"*)"
+    day_dir="$(echo "$(path_solution "")"*)"
     if [ ! -d "$day_dir" ]; then
-        day_dir_pre="$(printf "${c_fstr_day}%s" "$year" "$day" "$dirname")"
+        day_dir_pre="$(path_solution "$dirname")"
         printf 'Solution directory name: %s' "$day_dir_pre"
         read -r dir_in
         [ -z "$dir_in" ] && die "no name provided."
@@ -592,7 +590,7 @@ run_cmd() {
     done
     shift $((OPTIND-1))
 
-    day_dir="$(echo "$(printf "$c_fstr_day" "$year" "$day")"*)"
+    day_dir="$(echo "$(path_solution "")"*)"
     exe="$day_dir/$exec_name"
 
     [ -d "$day_dir" ] || die "no solution directory at %s" "$day_dir"
@@ -607,7 +605,7 @@ run_cmd() {
         input_file="$tmp/input"
         echo "$input" > "$input_file"
     elif [ -z "$input_file" ]; then
-        input_file=$(printf "$c_fstr_obj" "$year" "$day" $c_obj_input)
+        input_file=$(path_obj "$c_obj_input")
         [ -r "$input_file" ] || fetch_cmd "input" "$year" "$day"
         provided_input=true
     fi
@@ -621,8 +619,7 @@ run_cmd() {
             || die "execution failed"
 
         if [ "$provided_input" = "true" ] && [ -r "$tmp/answer" ]; then
-            answer_file=$(printf "$c_fstr_obj" $year $day "$c_obj_ans")
-            cp "$tmp/answer" "$answer_file"
+            cp "$tmp/answer" "$(path_obj "$c_obj_ans")"
         fi
 
         cat "$tmp/answer"
@@ -646,9 +643,8 @@ submit_cmd() {
 
     ans="$1"
     if [ -z "$ans" ]; then
-        answer_file=$(printf "$c_fstr_obj" "$year" "$day" "$c_obj_ans")
-        if [ -r "$answer_file" ]; then
-            ans=$(tail -n +"$part" "$answer_file" | head -n1)
+        if [ -r "$(path_obj "$c_obj_ans")" ]; then
+            ans=$(tail -n +"$part" "$(path_obj "$c_obj_ans")" | head -n1)
         else
             die "answer not provided and no answer file found\n%s" \
                 "$c_usage_submit"

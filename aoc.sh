@@ -30,7 +30,10 @@ c_obj_input=input
 c_obj_desc=desc
 c_obj_ex=ex
 
-c_commands="commands:
+aoc=$(basename "$0")
+
+c_commands=$(cat <<eof
+commands:
     select  -- save current selection of year and day
     status  -- show selection, login and completion status
     auth    -- authenticate user and create session cookie
@@ -40,20 +43,28 @@ c_commands="commands:
     run     -- compile and execute solution
     submit  -- submit answer for puzzle
     clean   -- delete all build files, fetched items, cookies
-    help    -- get help about command"
+    help    -- get help about command
+eof
+)
 
-c_usage="usage: aoc.sh [<arg>..] <command> [<arg>..]
+c_usage=$(cat <<eof
+usage: aoc.sh [<arg>..] <command> [<arg>..]
 
 flags:
     -y      -- select year
     -d      -- select day
     -q      -- query selection
 
-$c_commands"
+$c_commands
+eof
+)
 
-c_objects="objects:
+c_objects=$(cat <<eof
+objects:
     desc    -- puzzle description
-    input   -- puzzle input"
+    input   -- puzzle input
+eof
+)
 
 request() {
     url="$1"
@@ -79,12 +90,15 @@ completed_part() {
     fi
 }
 
-c_usage_select="usage: aoc.sh [<arg>..] select [<year>|<day>|<command>..]
+c_usage_select=$(cat <<eof
+usage: aoc.sh [<arg>..] select [<year>|<day>|<command>..]
 
 commands:
     [t]oday -- select today's puzzle
     [n]ext  -- select next puzzle
-    [p]rev  -- select previous puzzle"
+    [p]rev  -- select previous puzzle
+eof
+)
 
 select_cmd() {
     for input in "$@"; do
@@ -121,7 +135,8 @@ select_cmd() {
     printf "[ %d - day %02d ] set as current selection.\n" "$year" "$day"
 }
 
-c_usage_status="usage: aoc.sh status [-s] <command>
+c_usage_status=$(cat <<eof
+"usage: aoc.sh status [-s] <command>
 
 flags:
     -s      -- synchronize, update cache
@@ -130,7 +145,9 @@ commands:
     events  -- events with current completion
     days    -- days with current completion
     stats   -- personal leaderboard times
-    login   -- current login status"
+    login   -- current login status
+eof
+)
 
 status_cmd() {
     sync=false
@@ -291,10 +308,13 @@ status_cmd() {
     esac
 }
 
-c_usage_auth="usage: aoc.sh auth <service>
+c_usage_auth=$(cat <<eof
+usage: aoc.sh auth <service>
 
 services:
-    reddit"
+    reddit
+eof
+)
 
 auth_cmd() {
 
@@ -360,9 +380,12 @@ auth_reddit() {
     status_cmd -s login
 }
 
-c_usage_fetch="usage: aoc.sh fetch <object>
+c_usage_fetch=$(cat <<eof
+usage: aoc.sh fetch <object>
 
-$c_objects"
+$c_objects
+eof
+)
 
 fetch_cmd() {
     object=$1
@@ -390,12 +413,15 @@ fetch_cmd() {
     cp "$tmp/object" "$output_path"
 }
 
-c_usage_view="usage: aoc.sh view [-c <cmd>] desc
+c_usage_view=$(cat <<eof
+usage: aoc.sh view [-c <cmd>] desc
        aoc.sh view [-c <cmd>] input
        aoc.sh view [-c <cmd>] ex [<num>]
 
 flags:
-    -c      -- provide command to view object with"
+    -c      -- provide command to view object with
+eof
+)
 
 view_cmd() {
     viewer="less -rf"
@@ -478,10 +504,13 @@ view_cmd() {
     $viewer "$tmp/view"
 }
 
-c_usage_edit="usage: aoc.sh edit [-e <exec_name>]
+c_usage_edit=$(cat <<eof
+usage: aoc.sh edit [-e <exec_name>]
 
 flags:
-    -e <exec_name>  -- set executable name"
+    -e <exec_name>  -- set executable name
+eof
+)
 
 edit_cmd() {
     extension="*"
@@ -520,14 +549,17 @@ edit_cmd() {
     $EDITOR "$src"
 }
 
-c_usage_run="usage: aoc.sh run [<flag>...]
+c_usage_run=$(cat <<eof
+usage: aoc.sh run [<flag>...]
 
 flags:
     -i <input>      -- set puzzle input
     -I <input_file> -- set puzzle input file
     -e <example>    -- set puzzle input to example from puzzle description
     -d              -- do not capture stdout
-    -n <exec_name>  -- set executable name"
+    -n <exec_name>  -- set executable name
+eof
+)
 
 run_cmd() {
     input=""

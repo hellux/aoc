@@ -454,7 +454,7 @@ auth_reddit() {
 }
 
 c_usage_fetch=$(cat <<eof
-usage: $aoc [-y YEAR] [-d DAY] fetch <object>
+usage: $aoc [-y YEAR] [-d DAY] fetch <object>..
 
 Fetch objects and store them in the cache.
 
@@ -463,27 +463,29 @@ eof
 )
 
 fetch_cmd() {
-    object=$1
-    [ -z "$object" ] && die "no object specified" "$c_usage_fetch"
+    [ -z "$*" ] && die "no object specified" "$c_usage_fetch"
 
-    url=""
-    needs_auth=false
-    case "$object" in
-        "$c_obj_input")
-            url="$c_url_base/$year/day/$day/input";
-            needs_auth=true;;
-        "$c_obj_desc")
-            url="$c_url_base/$year/day/$day";;
-        *) die "invalid fetch object -- $object";;
-    esac
+    for object in "$@"; do
+        url=""
+        needs_auth=false
+        case "$object" in
+            "$c_obj_input")
+                url="$c_url_base/$year/day/$day/input";
+                needs_auth=true;;
+            "$c_obj_desc")
+                url="$c_url_base/$year/day/$day";;
+            *) die "invalid fetch object -- $object";;
+        esac
 
-    [ "$needs_auth" = "true" ] && [ ! -r "$cache/jar" ] && die "not signed in"
+        [ "$needs_auth" = "true" ] && [ ! -r "$cache/jar" ] && die "not signed in"
 
-    echo "Fetching $object for day $day, $year..."
-    request "$url" > "$tmp/object"
+        echo "Fetching $year day $day $object..."
+        request "$url" > "$tmp/object"
 
-    mkdir -p "$cache/puzzles"
-    cp "$tmp/object" "$(path_obj "$object")"
+        output_path="$(path_obj "$object")"
+        mkdir -p "$(dirname "$output_path")"
+        cp "$tmp/object" "$(path_obj "$object")"
+    done
 }
 
 c_usage_view=$(cat <<eof

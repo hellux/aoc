@@ -542,6 +542,7 @@ view_cmd() {
                 | sed 's/<pre><code>//g;s,</code></pre>,,g' \
                 | sed 's/<em>//g;s,</em>,,g' \
                 | sed 's/&lt;/</g;s/&gt;/>/g' \
+                | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}' \
                 > "$tmp/view"
             ;;
         *) cp "$object_path" "$tmp/view";;

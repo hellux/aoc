@@ -7,10 +7,6 @@ die() {
     exit 1
 }
 
-cache="${XDG_cache_HOME:-$HOME/.cache}"
-cache="$cache/aoc"
-tmp="$(mktemp -d)"
-
 c_start_year=2015
 c_start_day=1
 c_end_day=25
@@ -34,6 +30,7 @@ aoc=$(basename "$0")
 
 c_commands=$(cat <<eof
 commands:
+    init        initialize solutions directory
     select      save current selection of year and day
     status      show selection, login and completion status
     auth        authenticate user and create session cookie
@@ -116,6 +113,21 @@ ts_diff() {
         ts_s=$((ts_d%60))
         printf "%02d:%02d:%02d\n" "$ts_h" "$ts_m" "$ts_s"
     fi
+}
+
+c_usage_init="usage: $aoc init"
+
+init_cmd() {
+    [ -n "$*" ] && die "trailing args -- $*"
+    [ -d "$cache" ] && die "cache already exists at '$cache'"
+    mkdir -p "$cache" && echo "cache: $cache" >&2
+    if [ ! -r Makefile ]; then
+        makefile=$(dirname "$(realpath "$aoc")")/Makefile
+        [ -r "$makefile" ] || die "'$makefile' does not exist"
+        ln -s "$makefile" Makefile && echo "Makefile -> $makefile" >&2
+    fi
+    echo
+    echo "use $aoc auth to sign in" >&2
 }
 
 c_usage_select=$(cat <<eof
@@ -816,6 +828,7 @@ help_cmd() {
     fi
     for topic in "$@"; do
         case "$topic" in
+            init) echo "$c_usage_init";;
             select) echo "$c_usage_select";;
             auth) echo "$c_usage_auth";;
             status) echo "$c_usage_status";;
@@ -832,16 +845,6 @@ help_cmd() {
     done
 }
 
-[ -d "$tmp" ] || mkdir -p "$tmp"
-[ -d "$cache" ] || mkdir -p "$cache"
-
-# Cache default selections if not cached
-[ -r "$cache/year" ] || echo "$c_start_year" > "$cache/year"
-[ -r "$cache/day"  ] || echo "$c_start_day"  > "$cache/day"
-
-cached_year=$(cat "$cache/year")
-cached_day=$(cat "$cache/day")
-
 year=;day=
 while getopts y:d: flag; do
     case "$flag" in
@@ -851,6 +854,24 @@ while getopts y:d: flag; do
     esac
 done
 shift $((OPTIND-1))
+
+cmd=$1
+[ -z "$cmd" ] && die "no command provided" "$c_usage"
+shift 1
+
+cache="${XDG_cache_HOME:-$HOME/.cache}"
+cache="$cache/aoc"
+
+[ "$cmd" = "init" ] && init_cmd "$@"
+
+[ -d "$cache" ] || die "no cache at '$cache', use $aoc init to create."
+
+# Cache default selections if not cached
+[ -r "$cache/year" ] || echo "$c_start_year" > "$cache/year"
+[ -r "$cache/day"  ] || echo "$c_start_day"  > "$cache/day"
+
+cached_year=$(cat "$cache/year")
+cached_day=$(cat "$cache/day")
 
 # Get cached selections if not set
 [ -z "$year" ] && year=$cached_year
@@ -866,12 +887,10 @@ day=${day#"${day%%[![:space:]]*}"}
 { [ "$day" -ge "$c_start_day" ] && [ "$day" -le "$c_end_day" ]; } 2> /dev/null \
     || die "invalid day -- $day"
 
-cmd=$1
-[ -z "$cmd" ] && die "no command provided" "$c_usage"
-
-shift 1
+tmp="$(mktemp -d)"
 
 case "$cmd" in
+    init) ;;
     select) select_cmd "$@";;
     auth|authenticate) auth_cmd "$@";;
     status) status_cmd "$@";;

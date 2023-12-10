@@ -34,16 +34,16 @@ aoc=$(basename "$0")
 
 c_commands=$(cat <<eof
 commands:
-    select  -- save current selection of year and day
-    status  -- show selection, login and completion status
-    auth    -- authenticate user and create session cookie
-    fetch   -- fetch puzzle description or input
-    view    -- view fetched object
-    edit    -- edit source file of puzzle solution
-    run     -- compile and execute solution
-    submit  -- submit answer for puzzle
-    clean   -- delete all build files, fetched items, cookies
-    help    -- get help about command
+    select      save current selection of year and day
+    status      show selection, login and completion status
+    auth        authenticate user and create session cookie
+    fetch       fetch puzzle description or input
+    view        view fetched object
+    edit        edit source file of puzzle solution
+    run         compile and execute solution
+    submit      submit answer for puzzle
+    clean       delete all build files, fetched items, cookies
+    help        get help about command
 eof
 )
 
@@ -51,9 +51,9 @@ c_usage=$(cat <<eof
 usage: aoc.sh [<arg>..] <command> [<arg>..]
 
 flags:
-    -y      -- select year
-    -d      -- select day
-    -q      -- query selection
+    -y          select year
+    -d          select day
+    -q          query selection
 
 $c_commands
 eof
@@ -61,8 +61,8 @@ eof
 
 c_objects=$(cat <<eof
 objects:
-    desc    -- puzzle description
-    input   -- puzzle input
+    desc        puzzle description
+    input       puzzle input
 eof
 )
 
@@ -94,9 +94,9 @@ c_usage_select=$(cat <<eof
 usage: aoc.sh [<arg>..] select [<year>|<day>|<command>..]
 
 commands:
-    [t]oday -- select today's puzzle
-    [n]ext  -- select next puzzle
-    [p]rev  -- select previous puzzle
+    [t]oday     select today's puzzle
+    [n]ext      select next puzzle
+    [p]rev      select previous puzzle
 eof
 )
 
@@ -139,13 +139,13 @@ c_usage_status=$(cat <<eof
 "usage: aoc.sh status [-s] <command>
 
 flags:
-    -s      -- synchronize, update cache
+    -s              synchronize, update cache
 
 commands:
-    events  -- events with current completion
-    days    -- days with current completion
-    stats   -- personal leaderboard times
-    login   -- current login status
+    events          events with current completion
+    days            days with current completion
+    stats           personal leaderboard times
+    login           current login status
 eof
 )
 
@@ -419,7 +419,7 @@ usage: aoc.sh view [-c <cmd>] desc
        aoc.sh view [-c <cmd>] ex [<num>]
 
 flags:
-    -c      -- provide command to view object with
+    -c          provide command to view object with
 eof
 )
 
@@ -508,7 +508,7 @@ c_usage_edit=$(cat <<eof
 usage: aoc.sh edit [-e <exec_name>]
 
 flags:
-    -e <exec_name>  -- set executable name
+    -e <exec_name>      set executable name
 eof
 )
 
@@ -553,11 +553,11 @@ c_usage_run=$(cat <<eof
 usage: aoc.sh run [<flag>...]
 
 flags:
-    -i <input>      -- set puzzle input
-    -I <input_file> -- set puzzle input file
-    -e <example>    -- set puzzle input to example from puzzle description
-    -d              -- do not capture stdout
-    -n <exec_name>  -- set executable name
+    -i <input>          set puzzle input
+    -I <input_file>     set puzzle input file
+    -e <example>        set puzzle input to example from puzzle description
+    -d                  do not capture stdout
+    -n <exec_name>      set executable name
 eof
 )
 

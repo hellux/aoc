@@ -48,7 +48,7 @@ eof
 )
 
 c_usage=$(cat <<eof
-usage: aoc.sh [<arg>..] <command> [<arg>..]
+usage: $aoc [<arg>..] <command> [<arg>..]
 
 flags:
     -y          select year
@@ -91,7 +91,7 @@ completed_part() {
 }
 
 c_usage_select=$(cat <<eof
-usage: aoc.sh [<arg>..] select [<year>|<day>|<command>..]
+usage: $aoc [<arg>..] select [<year>|<day>|<command>..]
 
 commands:
     [t]oday     select today's puzzle
@@ -136,7 +136,7 @@ select_cmd() {
 }
 
 c_usage_status=$(cat <<eof
-"usage: aoc.sh status [-s] <command>
+"usage: $aoc status [-s] <command>
 
 flags:
     -s              synchronize, update cache
@@ -309,7 +309,7 @@ status_cmd() {
 }
 
 c_usage_auth=$(cat <<eof
-usage: aoc.sh auth <service>
+usage: $aoc auth <service>
 
 services:
     reddit
@@ -381,7 +381,7 @@ auth_reddit() {
 }
 
 c_usage_fetch=$(cat <<eof
-usage: aoc.sh fetch <object>
+usage: $aoc fetch <object>
 
 $c_objects
 eof
@@ -414,9 +414,9 @@ fetch_cmd() {
 }
 
 c_usage_view=$(cat <<eof
-usage: aoc.sh view [-c <cmd>] desc
-       aoc.sh view [-c <cmd>] input
-       aoc.sh view [-c <cmd>] ex [<num>]
+usage: $aoc view [-c <cmd>] desc
+       $aoc view [-c <cmd>] input
+       $aoc view [-c <cmd>] ex [<num>]
 
 flags:
     -c          provide command to view object with
@@ -505,7 +505,7 @@ view_cmd() {
 }
 
 c_usage_edit=$(cat <<eof
-usage: aoc.sh edit [-e <exec_name>]
+usage: $aoc edit [-e <exec_name>]
 
 flags:
     -e <exec_name>      set executable name
@@ -550,7 +550,7 @@ edit_cmd() {
 }
 
 c_usage_run=$(cat <<eof
-usage: aoc.sh run [<flag>...]
+usage: $aoc run [<flag>...]
 
 flags:
     -i <input>          set puzzle input
@@ -616,7 +616,7 @@ run_cmd() {
     fi
 }
 
-c_usage_submit="usage: aoc.sh submit [<answer>]"
+c_usage_submit="usage: $aoc submit [<answer>]"
 
 submit_cmd() {
     [ -f "$cache/jar" ] || die "not signed in"
@@ -666,7 +666,7 @@ submit_cmd() {
     fi
 }
 
-c_usage_clean="usage: aoc.sh clean"
+c_usage_clean="usage: $aoc clean"
 
 clean_cmd() {
     make -s clean
@@ -674,7 +674,7 @@ clean_cmd() {
     find . -type f -name "${c_exec_name:?}" -print0 | xargs -0 rm
 }
 
-c_usage_help="usage: aoc.sh help <command>
+c_usage_help="usage: $aoc help <command>
 
 $c_commands"
 
@@ -696,7 +696,7 @@ help_cmd() {
             *) die 'invalid topic -- "%s"\n\n%s' "$topic" "$c_usage_help";
         esac
     else
-        echo "aoc.sh -- Advent of Code helper script"
+        echo "$aoc -- Advent of Code helper script"
         printf '\n%s\n' "$c_usage"
     fi
     [ -n "$1" ] && warn 'excess arguments -- %s' "$*"

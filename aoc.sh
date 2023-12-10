@@ -12,8 +12,6 @@ cache="${XDG_cache_HOME:-$HOME/.cache}"
 cache="$cache/aoc"
 tmp="$(mktemp -d)"
 
-cache_jar="$cache/cookies.jar"
-
 c_start_year=2015
 c_start_day=1
 c_end_day=25
@@ -109,7 +107,7 @@ request() {
     shift 1
     args="$*"
 
-    code=$(curl -L -s -b "$cache_jar" -o "$tmp/request" -w '%{http_code}' \
+    code=$(curl -L -s -b "$cache/jar" -o "$tmp/request" -w '%{http_code}' \
            $args "$url")
 
     if [ "$code" != "200" ]; then
@@ -193,7 +191,7 @@ status_cmd() {
                     > "$cache/events"
 
                 # Get number of completed stars for each event
-                if [ -r "$cache_jar" ]; then
+                if [ -r "$cache/jar" ]; then
                     tmp_year=$year
                     while read -r year; do
                         status_cmd -s days > /dev/null
@@ -300,7 +298,7 @@ status_cmd() {
             $c_html_dump "$cache/stats_$year" | cat
             ;;
         login)
-            if [ -r "$cache_jar" ]; then
+            if [ -r "$cache/jar" ]; then
                 if [ "$sync" = true ]; then
                     request "$c_url_base/$c_start_year/events" > "$tmp/events"
                     if grep "Log In" "$tmp/events"; then
@@ -344,29 +342,29 @@ auth_reddit() {
     stty echo
     printf "\n"
 
-    rm -f "$cache_jar"
+    rm -f "$cache/jar"
 
     echo "Fetching CSRF token, reddit login session cookie..."
-    csrf=$(request "https://www.reddit.com/login/" -c "$cache_jar" | \
+    csrf=$(request "https://www.reddit.com/login/" -c "$cache/jar" | \
            grep 'csrf_token' | \
            grep -Eo "[0-9a-z]{40}")
 
     echo "Signing in to reddit..."
     LOGIN_PARAMS="username=$username&password=$password&csrf_token=$csrf"
     code=$(curl -s -H "$c_user_agent" --data "$LOGIN_PARAMS" \
-                -b "$cache_jar" -c "$cache_jar" \
+                -b "$cache/jar" -c "$cache/jar" \
                 -o /dev/null -w '%{http_code}' \
                 "https://www.reddit.com/login" \
            || exit 1)
     if [ "$code" -eq 400 ]; then
         echo "invalid password"
-        rm -f "$cache_jar"
+        rm -f "$cache/jar"
         exit 1
     fi
 
     echo "Fetching uh token..."
     uh=$(curl -s -H "$c_user_agent" \
-              -b "$cache_jar" \
+              -b "$cache/jar" \
               -L "$c_url_base/auth/reddit" | \
          grep -Eo "[0-9a-z]{50}" | \
          head -n1 \
@@ -376,11 +374,11 @@ auth_reddit() {
     c_auth="client_id=macQY9D1vLELaw&duration=temporary&redirect_uri=https://adventofcode.com/auth/reddit/callback&response_type=code&scope=identity&state=x&uh=$uh&authorize=Accept"
     curl -s --data "$c_auth" \
          -H "$c_user_agent" \
-         -b "$cache_jar" -c "$cache_jar" \
+         -b "$cache/jar" -c "$cache/jar" \
          -L "https://www.reddit.com/api/v1/authorize" > /dev/null
 
     # Keep only the needed session cookie.
-    sed -i -n '/adventofcode.com/p' "$cache_jar"
+    sed -i -n '/adventofcode.com/p' "$cache/jar"
 
     status_cmd -s login
 }
@@ -401,7 +399,7 @@ fetch_cmd() {
             die 'invalid object to fetch -- "%s"' "$object";;
     esac
 
-    [ "$needs_auth" = "true" -a ! -f "$cache_jar" ] && die "not signed in"
+    [ "$needs_auth" = "true" -a ! -f "$cache/jar" ] && die "not signed in"
 
     echo "Fetching $object for day $day, $year..."
     request "$url" > "$tmp/object"
@@ -585,7 +583,7 @@ run_cmd() {
 }
 
 submit_cmd() {
-    [ -f "$cache_jar" ] || die "not signed in"
+    [ -f "$cache/jar" ] || die "not signed in"
 
     case $(completed_part) in
         0) part=1;;

@@ -634,7 +634,7 @@ edit_cmd() {
 }
 
 c_usage_run=$(cat <<eof
-usage: $aoc [-y YEAR] [-d DAY] run [<option>]..
+usage: $aoc [-y YEAR] [-d DAY] run [<option>].. [<exec>]..
 
 Run the solution for the selected puzzle.
 
@@ -644,24 +644,21 @@ options:
     -e <example>        set puzzle input to example from puzzle description
     -d                  do not capture stdout, do not store answer
     -g                  run program using gdb, implies -d
-    -n <exec_name>      set executable name
 eof
 )
 
 run_cmd() {
     input=""
     input_file=""
-    exec_name="$c_exec_name"
     capture_output="true"
     precmd=""
     debug="false"
     OPTIND=1
-    while getopts i:I:e:c:n:dg flag; do
+    while getopts i:I:e:c:dg flag; do
         case "$flag" in
             i) input=$OPTARG;;
             I) input_file=$OPTARG;;
             e) exnum=$OPTARG;;
-            n) exec_name=$OPTARG;;
             c) precmd=$OPTARG;;
             d) capture_output=false;;
             g) debug=true;;
@@ -673,8 +670,6 @@ run_cmd() {
     [ "$debug" = "true" ] && capture_output="false"
 
     day_dir="$(echo "$(path_solution "")"*)"
-    exe="$day_dir/$exec_name"
-
     [ -d "$day_dir" ] || die "no solution directory at $day_dir"
 
     if [ -n "$exnum" ]; then
@@ -688,28 +683,30 @@ run_cmd() {
         echo "$input" > "$input_file"
     elif [ -z "$input_file" ]; then
         input_file=$(path_obj "$c_obj_input")
-        [ -r "$input_file" ] || fetch_cmd "input" "$year" "$day"
+        [ -r "$input_file" ] || fetch_cmd "input"
         provided_input=true
     fi
 
     [ -r "$input_file" ] || die "can't read input file"
 
-    make -s "$exe" || die "build failed"
-    [ -x "$exe" ] || die "build failed -- no executable file"
+    [ -z "$*" ] && set -- solution
+    for exec_name in "$@"; do
+        exe="$day_dir/$exec_name"
+        make -s "$exe" || die "build failed"
+        [ -x "$exe" ] || die "build failed -- no executable file"
 
-    cmd="'./$exe' < '$input_file'"
-    [ -n "$precmd" ] && cmd="$precmd $cmd"
-    [ "$debug" = "true" ] && cmd="gdb -ex 'set args < $input_file' '$exe'"
-    [ "$capture_output" = "true" ] && cmd="$cmd > '$tmp/answer'"
-    eval "$cmd" || die "execution failed, use -d for partial output"
+        cmd="'./$exe' < '$input_file'"
+        [ -n "$precmd" ] && cmd="$precmd $cmd"
+        [ "$debug" = "true" ] && cmd="gdb -ex 'set args < $input_file' '$exe'"
+        [ "$capture_output" = "true" ] && cmd="$cmd > '$tmp/answer'"
+        eval "$cmd" || die "execution failed, use -d for partial output"
 
-    if [ "$capture_output" = "true" ]; then
-        if [ "$provided_input" = "true" ] && [ -r "$tmp/answer" ]; then
-            cp "$tmp/answer" "$(path_obj "$c_obj_ans")"
+        if [ "$capture_output" = "true" ]; then
+            [ "$provided_input" = "true" ] && [ -r "$tmp/answer" ] &&
+                cp "$tmp/answer" "$(path_obj "$c_obj_ans")"
+            cat "$tmp/answer"
         fi
-
-        cat "$tmp/answer"
-    fi
+    done
 }
 
 c_usage_submit="usage: $aoc [-y YEAR] [-d DAY] submit [<answer>]

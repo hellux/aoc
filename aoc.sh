@@ -528,13 +528,11 @@ eof
 )
 
 edit_cmd() {
-    extension="*"
     name="$c_exec_name"
     OPTIND=1
-    while getopts n:e: flag; do
+    while getopts n: flag; do
         case "$flag" in
             n) name="$OPTARG";;
-            e) extension="$OPTARG";;
             *) die 'invalid flag\n\n%s' "$c_usage_edit"
         esac
     done
@@ -551,7 +549,7 @@ edit_cmd() {
         mkdir -p "$day_dir"
     fi
 
-    src="$(echo "$day_dir/$name".$extension)"
+    src="$(echo "$day_dir/$name".*)"
 
     if [ ! -r "$src" ]; then
         printf 'Solution file name: %s.' "$name"

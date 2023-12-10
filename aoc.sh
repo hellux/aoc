@@ -517,14 +517,8 @@ view_cmd() {
 
     if [ "$view_object" = "$c_obj_ex" ]; then
         fetch_object="$c_obj_desc"
-        exnum="$1"
-        if [ -z "$exnum" ];
-        then exnum=1
-        else shift 1
-        fi
-
-        [ "$exnum" -gt 0 ] 2> /dev/null ||
-            die "invalid example number -- $exnum" "$c_usage_view"
+        exnums="$*"
+        shift $#
     else
         fetch_object="$view_object"
     fi
@@ -563,21 +557,34 @@ view_cmd() {
             ;;
         "$c_obj_ex")
             nex=$(grep -c "<pre><code>" "$object_path")
-            [ "$exnum" -gt "$nex" ] &&
-                die "example $exnum not found, only $nex example(s) exist"
+            [ -z "$exnums" ] && exnums=$(seq "$nex")
+            ns=0; for _ in $exnums; do ns=$((ns+1)); done
 
-            beg=$(grep -n "<pre><code>" "$object_path" \
-                | cut -f1 -d: \
-                | sed -n "${exnum}p")
-            end=$(grep -n "</code></pre>" "$object_path" \
-                | cut -f1 -d: \
-                | sed -n "${exnum}p")
-            sed -n "${beg},${end}p" "$object_path" \
-                | sed 's/<pre><code>//g;s,</code></pre>,,g' \
-                | sed 's/<em>//g;s,</em>,,g' \
-                | sed 's/&lt;/</g;s/&gt;/>/g' \
-                | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}' \
-                > "$tmp/view"
+            i=1
+            rm -f "$tmp/view"
+            for exnum in $exnums; do
+                [ "$ns" -gt 1 ] && echo "$i" >> "$tmp/view"
+                [ "$exnum" -gt 0 ] 2> /dev/null ||
+                    die "invalid example number -- $exnum" "$c_usage_view"
+
+                [ "$exnum" -gt "$nex" ] &&
+                    die "example $exnum not found, only $nex example(s) exist"
+
+                beg=$(grep -n "<pre><code>" "$object_path" \
+                    | cut -f1 -d: \
+                    | sed -n "${exnum}p")
+                end=$(grep -n "</code></pre>" "$object_path" \
+                    | cut -f1 -d: \
+                    | sed -n "${exnum}p")
+                sed -n "${beg},${end}p" "$object_path" \
+                    | sed 's/<pre><code>//g;s,</code></pre>,,g' \
+                    | sed 's/<em>//g;s,</em>,,g' \
+                    | sed 's/&lt;/</g;s/&gt;/>/g' \
+                    | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}' \
+                    >> "$tmp/view"
+                i=$((i+1))
+                [ "$ns" -gt 1 ] && [ "$i" -le "$ns" ] && echo >> "$tmp/view"
+            done
             ;;
         *) cp "$object_path" "$tmp/view";;
     esac

@@ -53,7 +53,6 @@ usage: $aoc [-y YEAR] [-d DAY] <command> [<command option>]
 global options:
     -y YEAR     temporarily select year
     -d DAY      temporarily select day
-    -q          query selection
 
 Year and day specified as options will be used for the current command but will
 not alter the current selection (use select command for that).
@@ -735,31 +734,15 @@ help_cmd() {
 cached_year=$(cat "$cache/year")
 cached_day=$(cat "$cache/day")
 
-query=false
 year=;day=
-while getopts qy:d:p: flag; do
+while getopts y:d: flag; do
     case "$flag" in
-        q) query=true;;
         y) year="$OPTARG";;
         d) day="$OPTARG";;
         *) die 'invalid flag\n\n%s' "$c_usage"
     esac
 done
 shift $((OPTIND-1))
-
-if [ "$query" = "true" ]; then
-    if [ -z "$year" ]; then
-        printf "Year [%d]: " "$cached_year"
-        read -r new
-        [ -n "$new" ] && year="$new"
-    fi
-
-    if [ -z "$day" ]; then
-        printf "Day [%02d]: " "$cached_day"
-        read -r new
-        [ -n "$new" ] && day="$new"
-    fi
-fi
 
 # Get cached selections if not set
 [ -z "$year" ] && year=$cached_year

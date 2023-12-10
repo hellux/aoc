@@ -93,6 +93,7 @@ ts_write() {
         || echo "$(ts_entry "$1"):$(date +%s)" >> "$cache/timestamps"
 }
 ts_read() {
+    [ "$1" = "now" ] && date +%s && return
     [ "$1" = "unlock" ] && date -d "$year-12-$day EST" +%s && return
     ts_e=
     [ -r "$cache/timestamps" ] && ts_e=$(grep -E "^$(ts_entry "$1")" "$cache/timestamps")
@@ -476,6 +477,13 @@ eof
 
 fetch_cmd() {
     [ -z "$*" ] && die "no object specified" "$c_usage_fetch"
+
+    while :; do
+        [ "$(($(ts_read unlock)-$(ts_read now)))" -le 0 ] && break
+        printf "\rPuzzle for day %d, %d unlocks in %s." \
+            "$day" "$year" "$(ts_diff now unlock)" >&2
+        sleep 1
+    done
 
     for object in "$@"; do
         url=""

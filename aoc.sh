@@ -37,23 +37,26 @@ commands:
     select      save current selection of year and day
     status      show selection, login and completion status
     auth        authenticate user and create session cookie
-    fetch       fetch puzzle description or input
-    view        view fetched object
-    edit        edit source file of puzzle solution
+    fetch       fetch objects, e.g. puzzle description or input
+    view        view an object, e.g. puzzle description or input
+    edit        open the puzzle solution in a text editor
     run         compile and execute solution
     submit      submit answer for puzzle
     clean       delete all build files, fetched items, cookies
-    help        get help about command
+    help        show info about commands
 eof
 )
 
 c_usage=$(cat <<eof
-usage: $aoc [<arg>..] <command> [<arg>..]
+usage: $aoc [-y YEAR] [-d DAY] <command> [<command option>]
 
-flags:
-    -y          select year
-    -d          select day
+global options:
+    -y YEAR     temporarily select year
+    -d DAY      temporarily select day
     -q          query selection
+
+Year and day specified as options will be used for the current command but will
+not alter the current selection (use select command for that).
 
 $c_commands
 eof
@@ -91,7 +94,9 @@ completed_part() {
 }
 
 c_usage_select=$(cat <<eof
-usage: $aoc [<arg>..] select [<year>|<day>|<command>..]
+usage: $aoc [-y YEAR] [-d DAY] select [<year>|<day>|<command>]..
+
+Set the currently selected puzzle that will be used for subsequent commands.
 
 commands:
     [t]oday     select today's puzzle
@@ -136,9 +141,9 @@ select_cmd() {
 }
 
 c_usage_status=$(cat <<eof
-"usage: $aoc status [-s] <command>
+"usage: $aoc [-y YEAR] [-d DAY] status [-s] [<command>]
 
-flags:
+options:
     -s              synchronize, update cache
 
 commands:
@@ -311,6 +316,9 @@ status_cmd() {
 c_usage_auth=$(cat <<eof
 usage: $aoc auth <service>
 
+Sign in to a service and create a session cookie that will be used for
+subsequent commands.
+
 services:
     reddit
 eof
@@ -381,7 +389,9 @@ auth_reddit() {
 }
 
 c_usage_fetch=$(cat <<eof
-usage: $aoc fetch <object>
+usage: $aoc [-y YEAR] [-d DAY] fetch <object>
+
+Fetch objects and store them in the cache.
 
 $c_objects
 eof
@@ -414,11 +424,13 @@ fetch_cmd() {
 }
 
 c_usage_view=$(cat <<eof
-usage: $aoc view [-c <cmd>] desc
-       $aoc view [-c <cmd>] input
-       $aoc view [-c <cmd>] ex [<num>]
+usage: $aoc view [<option>].. desc
+       $aoc view [<option>].. input
+       $aoc view [<option>].. ex [<num>]
 
-flags:
+View an object with 'less' or a specified command.
+
+options:
     -c          provide command to view object with
 eof
 )
@@ -505,9 +517,12 @@ view_cmd() {
 }
 
 c_usage_edit=$(cat <<eof
-usage: $aoc edit [-e <exec_name>]
+usage: $aoc [-y YEAR] [-d DAY] edit [-e <exec_name>]
 
-flags:
+Open the solution source file for the selected puzzle, create it if
+non-existent.
+
+options:
     -e <exec_name>      set executable name
 eof
 )
@@ -550,13 +565,15 @@ edit_cmd() {
 }
 
 c_usage_run=$(cat <<eof
-usage: $aoc run [<flag>...]
+usage: $aoc [-y YEAR] [-d DAY] run [<option>]..
 
-flags:
+Run the solution for the selected puzzle.
+
+options:
     -i <input>          set puzzle input
     -I <input_file>     set puzzle input file
     -e <example>        set puzzle input to example from puzzle description
-    -d                  do not capture stdout
+    -d                  do not capture stdout, do not store answer
     -n <exec_name>      set executable name
 eof
 )
@@ -616,7 +633,10 @@ run_cmd() {
     fi
 }
 
-c_usage_submit="usage: $aoc submit [<answer>]"
+c_usage_submit="usage: $aoc [-y YEAR] [-d DAY] submit [<answer>]
+
+Submit an answer for the next uncompleted part of the selected puzzle.
+"
 
 submit_cmd() {
     [ -f "$cache/jar" ] || die "not signed in"
@@ -666,7 +686,10 @@ submit_cmd() {
     fi
 }
 
-c_usage_clean="usage: $aoc clean"
+c_usage_clean="usage: $aoc clean
+
+Remove all build files and cached items.
+"
 
 clean_cmd() {
     make -s clean
@@ -675,6 +698,8 @@ clean_cmd() {
 }
 
 c_usage_help="usage: $aoc help <command>
+
+Show info about commands.
 
 $c_commands"
 

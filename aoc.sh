@@ -87,22 +87,23 @@ completed_part() {
     fi
 }
 
-ts_entry() { printf "%d-%02d-%s" "$year" "$day" "$1"; }
+ts_entry() { printf "%d-%02d-%s" "$year" "${2:-$day}" "$1"; }
 ts_write() {
     ts_read "$1" >/dev/null \
-        || echo "$(ts_entry "$1"):$(date +%s)" >> "$cache/timestamps"
+        || echo "$(ts_entry "$1" "$2"):$(date +%s)" >> "$cache/timestamps"
 }
 ts_read() {
+    [ "$1" -ge 0 ] 2>/dev/null && echo "$1" && return
     [ "$1" = "now" ] && date +%s && return
-    [ "$1" = "unlock" ] && date -d "$year-12-$day EST" +%s && return
+    [ "$1" = "unlock" ] && date -d "$year-12-${2:-$day} EST" +%s && return
     ts_e=
-    [ -r "$cache/timestamps" ] && ts_e=$(grep -E "^$(ts_entry "$1")" "$cache/timestamps")
+    [ -r "$cache/timestamps" ] && ts_e=$(grep -E "^$(ts_entry "$1" "$2")" "$cache/timestamps")
     [ -n "$ts_e" ] && echo "${ts_e##*:}"
 }
 ts_diff() {
-    ts_a=$(ts_read "$1")
+    ts_a=$(ts_read "$1" "$3")
     [ -z "$ts_a" ] && return
-    ts_b=$(ts_read "$2")
+    ts_b=$(ts_read "$2" "$3")
     [ -z "$ts_b" ] && return
     ts_d=$((ts_b-ts_a))
     if [ "$ts_d" -gt 86400 ]; then
@@ -173,10 +174,11 @@ select_cmd() {
 }
 
 c_usage_status=$(cat <<eof
-"usage: $aoc [-y YEAR] [-d DAY] status [-s] [<command>]
+"usage: $aoc [-y YEAR] [-d DAY] status [-s] [-v] [<command>]
 
 options:
     -s              synchronize, update cache
+    -v              verbose output, depends on command
 
 commands:
     events          events with current completion
@@ -337,6 +339,23 @@ status_cmd() {
             fi
 
             for lb in "$cache"/lb_priv/"$year"/*; do
+                for d in $(seq 25); do
+                    for p in $(seq 2); do
+                        out=$(< "$lb" jq -r '.members
+                            | [to_entries[].value][]
+                            | .name as $name
+                            | .completion_day_level."'"$d"'"."'"$p"'"
+                            | select (.)
+                            | [.get_star_ts, $name]
+                            | @tsv' \
+                            | sort | while IFS=$(printf "\t") read -r t n; do
+                            printf "%s\t%s\t%s\n" "$(ts_diff unlock "$t" "$d")" "$n"
+                        done
+                        )
+                        [ -n "$out" ] && echo "Day $d part $p" && echo "$out" && echo
+                    done
+                done
+
                 echo "                  1111111111222222"
                 echo "         1234567890123456789012345"
                 < "$lb" jq -r '.members

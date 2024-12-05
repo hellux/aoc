@@ -1,5 +1,5 @@
 .POSIX:
-.SUFFIXES: .lisp .py .go .hs .rs .awk .jq .nim .zig .ha
+.SUFFIXES: .lisp .py .go .hs .rs .awk .jq .nim .zig .ha .ml
 
 OBJDIR = build
 CFLAGS += -g -Wall -Wextra -Wconversion
@@ -41,6 +41,10 @@ ASFLAGS += -no-pie -znoexecstack
 
 .ha:
 	hare build -o $@ $<
+
+.ml:
+	ocamlc -o $@ $<
+	rm -f $@.cmi $@.cmo
 
 clean:
 	rm -rf ${OBJDIR}
